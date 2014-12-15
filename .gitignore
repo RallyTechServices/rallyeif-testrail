@@ -1,0 +1,12 @@
+.buildpath
+.idea/
+.project
+Gemfile.lock
+configs/test1*
+configs/test2*
+configs/test_connections-JPs*
+coverage/
+pkg/
+rallylog.log*
+reldir*
+test_configuration_helper.rb
