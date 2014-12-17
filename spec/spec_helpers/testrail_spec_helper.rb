@@ -14,29 +14,47 @@ require File.dirname(__FILE__) + '/../../lib/rallyeif-testrail'
 
 include YetiTestUtils
 
-module SalesForceSpecHelper
+module TestRailSpecHelper
 
-  TestRailConnection      = RallyEIF::WRK::TestRailConnection   if not defined?(TestRailConnection)
+  TestRailConnection      = RallyEIF::WRK::TestRailConnection     if not defined?(TestRailConnection)
   RecoverableException    = RallyEIF::WRK::RecoverableException   if not defined?(RecoverableException)
   UnrecoverableException  = RallyEIF::WRK::UnrecoverableException if not defined?(UnrecoverableException)
   YetiSelector            = RallyEIF::WRK::YetiSelector           if not defined?(YetiSelector)
   FieldMap                = RallyEIF::WRK::FieldMap               if not defined?(FieldMap)
   Connector               = RallyEIF::WRK::Connector              if not defined?(Connector)
   
-  SALESFORCE_STATIC_CONFIG = "
+  TESTRAIL_STATIC_CONFIG = "
     <config>
-      <SalesForceConnection>
-        <Url>#{TestConfig::SF_URL}</Url>
-        <User>#{TestConfig::SF_USER}</User>
-        <Password>#{TestConfig::SF_PASSWORD}</Password>
-        <ConsumerKey>#{TestConfig::SF_CONSUMERKEY}</ConsumerKey>
-        <ConsumerSecret>#{TestConfig::SF_CONSUMERSECRET}</ConsumerSecret>
-        <ExternalIDField>#{TestConfig::SF_EXTERNAL_ID_FIELD}</ExternalIDField>
-        <ArtifactType>#{TestConfig::SF_ARTIFACT_TYPE}</ArtifactType>
-      </SalesForceConnection>
+      <TestRailConnection>
+        <Url>#{TestConfig::TR_URL}</Url>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+      </TestRailConnection>
     </config>"
 
-  SALESFORCE_CONNECTOR_STANDARD_CONFIG = "
+  TESTRAIL_MISSING_ARTIFACT_CONFIG = "
+    <config>
+      <TestRailConnection>
+        <Url>#{TestConfig::TR_URL}</Url>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+      </TestRailConnection>
+    </config>"
+
+  TESTRAIL_MISSING_URL_CONFIG = "
+    <config>
+      <TestRailConnection>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+      </TestRailConnection>
+    </config>"
+    
+  TESTRAIL_CONNECTOR_STANDARD_CONFIG = "
     <config>
       <RallyConnection>
         <Url>#{TestConfig::RALLY_URL}</Url>
@@ -50,14 +68,12 @@ module SalesForceSpecHelper
         <ExternalIDField>#{TestConfig::RALLY_EXTERNAL_ID_FIELD}</ExternalIDField>
       </RallyConnection>
   
-      <SalesForceConnection>
+      <TestRailConnection>
         <User>user@company.com</User>
         <Password>Secret</Password>
-        <ExternalIDField>#{TestConfig::SF_EXTERNAL_ID_FIELD}</ExternalIDField>
-        <ConsumerKey>#{TestConfig::SF_CONSUMERKEY}</ConsumerKey>
-        <ConsumerSecret>#{TestConfig::SF_CONSUMERSECRET}</ConsumerSecret>
-        <ArtifactType>#{TestConfig::SF_ARTIFACT_TYPE}</ArtifactType>
-      </SalesForceConnection>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+      </TestRailConnection>
 
       <Connector>
         <FieldMapping>
@@ -66,12 +82,24 @@ module SalesForceSpecHelper
         </FieldMapping>
       </Connector>
     </config>"
-  
 
+  TESTRAIL_EXTERNAL_FIELDS_CONFIG = "
+    <config>
+      <TestRailConnection>
+        <Url>#{TestConfig::TR_URL}</Url>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <IDField>#{TestConfig::TR_ID_FIELD}</IDField>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ExternalEndUserIDField>#{TestConfig::TR_EXTERNAL_EU_ID_FIELD}</ExternalEndUserIDField>
+        <CrosslinkUrlField>#{TestConfig::TR_CROSSLINK_FIELD}</CrosslinkUrlField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+      </TestRailConnection>
+    </config>"
       
-  def salesforce_connect(config_file)
+  def testrail_connect(config_file)
     root = YetiTestUtils::load_xml(config_file).root
-    connection = SalesForceConnection.new(root)
+    connection = TestRailConnection.new(root)
     connection.connect()
     return connection
   end
@@ -83,32 +111,42 @@ module SalesForceSpecHelper
     return connection
   end
   
-  def create_salesforce_artifact(connection, extra_fields = nil)
-    connection.salesforce.materialize("User")
-    current_user = User.find_by_username(connection.user)
+  def create_testrail_testcase(connection, extra_fields = nil)
+    #connection.testrail.materialize("User")
+    current_user = TestConfig::TR_USER
     
-    name = 'Time-' + Time.now.strftime("%Y%m%d%H%M%S") + '-' + Time.now.usec.to_s
-    fields            = {}
-    fields["Subject"] = name
-    fields["OwnerId"] = current_user["Id"]
-    fields["Origin"]  = "Web"
-      
-    # Code around bug in SF... whereby boolean fields require a value
-    bools = connection.boolean_fields
-    bools.each do |field|
-      fields[field] = false
-    end
+    title = 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s
+    # title        string   The title of the test case (required)
+    # type_id      int      The ID of the case type
+    #                          1 Automated
+    #                          2 Functionality
+    #                          3 Performance
+    #                          4 Regression
+    #                          5 Usability
+    #                          6 Other
+    # priority_id  int      The ID of the case priority
+    # estimate     timespan The estimate, e.g. "30s" or "1m 45s"
+    # milestone_id int      The ID of the milestone to link to the test case
+    # refs         string   A comma-separated list of references/requirements
+    fields  = {
+      'title'         => title,
+      'type_id'       => 6,
+      'priority_id'   => 5,
+      'estimate'      => '3m14s',
+      'milestone_id'  => 1,
+      'refs'          => '',
+    }
       
     if !extra_fields.nil?
       fields.merge!(extra_fields)
     end
     item = connection.create(fields)
-    return [item, fields['Subject']]
+    return [item, fields['Title']]
   end
   
 end
 
-class SFItem
+class TRItem
   attr_accessor :Name
   
   def initialize(name=nil)

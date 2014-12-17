@@ -9,7 +9,7 @@ require "#{File.dirname(__FILE__)}/lib/rallyeif-sf"
 begin
   RallyEIF::WRK::LoadCustomFieldHandlers.load
 
-  connector_runner = RallyEIF::WRK::ConnectorRunner.new(ARGV, "SalesForceConnection")
+  connector_runner = RallyEIF::WRK::ConnectorRunner.new(ARGV, "TestRailConnection")
   connector_runner.run()
 rescue => ex
   RallyEIF::WRK::RallyLogger.exception(self, ex)
