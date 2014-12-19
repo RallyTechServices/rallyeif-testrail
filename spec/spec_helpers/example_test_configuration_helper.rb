@@ -27,25 +27,19 @@ module TestConfig
   RALLY_PROJECT_HIERARCHICAL_CHILD      = "Reseller Site"
   RALLY_PROJECT_HIERARCHICAL_GRANDCHILD = "Reseller Portal Team"
   
-  # salesforce connection information
-  SF_URL      = "na16.salesforce.com"
-  SF_USER     = ""
-  SF_PASSWORD = ""
+  # TestRail connection information
+  TR_URL      = "https://somewhere.testrail.com"
+  TR_USER     = "***REMOVED***"
+  TR_PASSWORD = ""
   
-  # To create a custom field in Saleforce:
+  # To create a custom field in TestRail:
   # Click on 'Setup' (near top right), 'Build' (left column), 'Customize Cases', 'Fields',
   # then scroll down to "Case Custom Fields & Relationships", click 'New'...
   # (note in config file they must end with "__c")
-  SF_EXTERNAL_ID_FIELD    = "RallyObjectID__c"
-  SF_EXTERNAL_EU_ID_FIELD = "RallyFormattedID__c"
-  SF_ID_FIELD             = "CaseNumber"
-  SF_CROSSLINK_FIELD      = "RallyURL__c"
-  SF_ARTIFACT_TYPE        = "Case"
-  
-  # In Salesforce under "Setup" (top-right),
-  # then in left sidebar, "Build" --> "Create" --> "Apps",
-  # then under "Connected Apps" in mid-screen, click on "RallyIntegrations1"
-  SF_CONSUMERKEY    = "3MVG.............................................................................vqDX"
-  SF_CONSUMERSECRET = "4568...........4805"
+  TR_EXTERNAL_ID_FIELD    = "RallyObjectID__c"
+  TR_EXTERNAL_EU_ID_FIELD = "RallyFormattedID__c"
+  TR_ID_FIELD             = "CaseNumber"
+  TR_CROSSLINK_FIELD      = "RallyURL__c"
+  TR_ARTIFACT_TYPE        = "Case"
 
 end
