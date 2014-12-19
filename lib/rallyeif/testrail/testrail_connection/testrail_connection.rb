@@ -307,20 +307,31 @@ module RallyEIF
       end
 #---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
-        external_id_sysname = 'custom_' + @external_id_field.to_s.downcase
-        RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field '#{@external_id_sysname}' to '#{external_id}'")
-        fields = {external_id_sysname => external_id} # we should always have one
+
+        fields = {}
+        
+        if !external_id.nil?
+          sysname = 'custom_' + @external_id_field.to_s.downcase
+          fields[sysname.intern] = external_id
+          RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field '#{sysname}' to '#{external_id}'")
+        end
 
         # Rally gives us a full '<a href=' tag
         if !item_link.nil?
           url_only = item_link.gsub(/.* href=["'](.*?)['"].*$/, '\1')
-          fields["custom_#{@external_item_link_field.to_s.downcase}"] = url_only unless @external_item_link_field.nil?
+          if !@external_item_link_field.nil?
+            sysname = 'custom_' + @external_item_link_field.to_s.downcase
+            fields[sysname.intern] = url_only
+            RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{sysname}) to '#{url_only}'")
+          end
         end
-        RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{@external_item_link_field}) to '#{fields["custom_#{@external_item_link_field.to_s.downcase}"]}'")
-        
-        fields["custom_#{@external_end_user_id_field.to_s.downcase}"] = end_user_id unless @external_end_user_id_field.nil?
-        RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>> field (#{@external_end_user_id_field}) to '#{fields["custom_#{@external_end_user_id_field.to_s.downcase}"]}'")
-        
+
+        if !@external_end_user_id_field.nil?
+          sysname = 'custom_' + @external_end_user_id_field.to_s.downcase
+          fields[sysname.intern] = end_user_id
+          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>> field (#{sysname}) to '#{@end_user_id}'")
+        end
+
         update_internal(artifact, fields)
       end
 #---------------------#
