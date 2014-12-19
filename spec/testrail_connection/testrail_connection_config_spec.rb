@@ -16,7 +16,6 @@ describe "Given configuration in the TestRail section" do
   
   it "(2), should successfully validate a basic config file " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
-require 'debugger';debugger
     connection.validate.should be_true
   end
   
