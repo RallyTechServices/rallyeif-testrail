@@ -3,7 +3,7 @@
 # $: << 'lib' << '.'
 
 require 'rallyeif-wrk'
-require "#{File.dirname(__FILE__)}/lib/rallyeif-sf"
+require "#{File.dirname(__FILE__)}/lib/rallyeif-testrail"
 
 
 begin

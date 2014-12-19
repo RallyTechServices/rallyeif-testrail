@@ -3,15 +3,10 @@
 require 'rallyeif-wrk'
 require './testrail-api-master/ruby/testrail.rb'
 
-#require 'debugger'
-#debugger
-
 RecoverableException   = RallyEIF::WRK::RecoverableException if not defined?(RecoverableException)
 UnrecoverableException = RallyEIF::WRK::UnrecoverableException
 RallyLogger            = RallyEIF::WRK::RallyLogger
 XMLUtils               = RallyEIF::WRK::XMLUtils
-
-#GetClearQuestAPIVersionMajor, GetClearQuestAPIVersionMinor
 
 module RallyEIF
   module WRK
@@ -25,6 +20,7 @@ module RallyEIF
       #
       @testrail     = '' # The connecton packet used to make request.
       @tr_user_info = '' # TestRail information about user in config file.
+      @tr_fields_tc = '' # Hash of test case object fields.
       
       def initialize(config=nil)
         super()
@@ -52,7 +48,7 @@ module RallyEIF
       def get_backend_version()
         return "%s %s" % [name, version]
       end
-#########
+#---------------------#
       def connect()    
         RallyLogger.debug(self, "********************************************************")
         RallyLogger.debug(self, "Connecting to TestRail:")
@@ -76,23 +72,40 @@ module RallyEIF
         begin
           @tr_user_info = @testrail.send_get("get_user_by_email&email=#{@user}")
           RallyLogger.debug(self, "User information retrieve successfully for '#{@user}'")
+          
+          # Assemble a hash: {'sysname_name' => ['name', 'label', 'type_id', 'String of type-id']}
+          str_types = ['',             # 0
+                       'String',       # 1
+                       'Integer',      # 2
+                       'Text',         # 3
+                       'URL',          # 4
+                       'Checkbox',     # 5
+                       'Dropdown',     # 6
+                       'User',         # 7
+                       'Date',         # 8
+                       'Milestone',    # 9
+                       'Steps',        # 10
+                       '?Unknown?',    # 11
+                       'Multi-select', # 12
+                      ]
+          @tr_fields_tc = {}
+          tmp = @testrail.send_get('get_case_fields')
+          tmp.each do |item|
+            @tr_fields_tc[item['system_name']] =  [item['name'], item['label'], item['type_id'], str_types[item['type_id']]]
+          end
         rescue Exception => ex
           raise UnrecoverableException.new("Cannot retrieve information for user '#{@user}'.\n TestRail api returned:#{ex.message}", self)
         end
-        
-        @artifact_class = artifact_type
+
         #set_field_types(@artifact_class)
 
         return @testrail
       end
-#########
+#---------------------#
       def create_internal(int_work_item)
-        RallyLogger.debug(self,"Preparing to create one TestRail: '#{@artifact_class}'")
+        RallyLogger.debug(self,"Preparing to create one TestRail: '#{@artifact_type}'")
         begin
-          #new_item = @artifact_class.new(int_work_item)
-          #temp = new_item.save
-          #new_item = @artifact_class.find(temp)  #otherwise we don't get the Name/ID
-          case @artifact_class
+          case @artifact_type
           when :testcase
             # Create a TestRail TestCase
             tc_fields  = {
@@ -106,29 +119,67 @@ module RallyEIF
             new_item = @testrail.send_post('add_case/1', tc_fields)
             new_item.merge!({'TypeOfArtifact'=>:testcase})
           else
-            raise UnrecoverableException.new("Unrecognize value for @artifact_class ('#{@artifact_class}')", self)
+            raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
           end
         rescue RuntimeError => ex
           raise RecoverableException.copy(ex, self)
         end
-        RallyLogger.debug(self,"Created #{@artifact_class} #{new_item['id']}")
+        RallyLogger.debug(self,"Created #{@artifact_type} #{new_item['id']}")
         return new_item
       end
-#########
+#---------------------#
+      def delete(item)
+        case item['TypeOfArtifact']
+        when :testcase
+          retval = @testrail.send_post("delete_case/#{item['id']}",nil)
+        when :dogmeat
+          # do :dogmeat stuff
+        when :catmeat
+          # do catmeat stuff
+        else
+          raise UnrecoverableException.new("Unrecognize value for item['TypeOfArtifact'] ('#{item['TypeOfArtifact']}')", self)
+        end
+        return nil
+      end
+#---------------------#
       def disconnect()
-        # TODO
         RallyLogger.info(self,"Would disconnect at this point if we needed to")
       end
-#########
+#---------------------#
       def field_exists? (field_name)
-        # Is this a valid field name?
-        if !@lower_atts.member? field_name.to_s.downcase
-            RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name")
+
+        case @artifact_type
+        when :testcase
+          if !@tr_fields_tc.member? field_name.to_s.downcase
+            RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
             return false
+          end
+        when :dogmeat
+          # do :dogmeat stuff
+        when :catmeat
+          # do catmeat stuff
+        else
+          raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
         end
+        
         return true
       end
-#########
+#---------------------#
+      def find(item)
+        case item['TypeOfArtifact']
+        when :testcase
+          found_item = @testrail.send_get("get_case/#{item['id']}")
+          found_item.merge!({'TypeOfArtifact'=>:testcase})
+        when :dogmeat
+          # do :dogmeat stuff
+        when :catmeat
+          # do catmeat stuff
+        else
+          raise UnrecoverableException.new("Unrecognize value for item['TypeOfArtifact'] ('#{item['TypeOfArtifact']}')", self)
+        end
+        return found_item
+      end
+#---------------------#
       # find_by_external_id is forced from inheritance
       def find_by_external_id(external_id)
         #return {@external_id_field.to_s=>external_id}
@@ -151,18 +202,18 @@ module RallyEIF
         end
         return artifact_array.first
       end
-#########
+#---------------------#
       def find_by_query(string)
         unpopulated_items = @testrail.query(string)
         populated_items = []
         unpopulated_items.each do |item|
-          populated_items.push(@artifact_class.find(item['Id']))
+          populated_items.push(@artifact_type.find(item['Id']))
         end
         return populated_items
       end
-#########
+#---------------------#
       def find_new()
-        RallyLogger.info(self, "Find New TestRail #{@artifact_type}s")
+        RallyLogger.info(self, "Find New TestRail '#{@artifact_type}' objects")
         artifact_array = []
         begin
           query = "SELECT Id FROM #{@artifact_type} #{get_SOQL_where_for_new()}"
@@ -173,12 +224,12 @@ module RallyEIF
           raise UnrecoverableException.copy(ex,self)
         end
         
-        RallyLogger.info(self, "Found #{artifact_array.length} new #{@artifact_type}s in #{name()}.")
+        RallyLogger.info(self, "Found '#{artifact_array.length}' new '#{@artifact_type}' objects in '#{name()}'.")
         return artifact_array
       end
-#########
+#---------------------#
       def find_updates(reference_time)
-        RallyLogger.info(self, "Find Updated TestRail #{@artifact_type}s since '#{reference_time}' (class=#{reference_time.class})")
+        RallyLogger.info(self, "Find Updated TestRail objects of type '#{@artifact_type}' since '#{reference_time}' (class=#{reference_time.class})")
         artifact_array = []
         begin
           query = "SELECT Id,Subject FROM #{@artifact_type} #{get_SOQL_where_for_updates()}"
@@ -189,24 +240,24 @@ module RallyEIF
           raise UnrecoverableException.copy(ex,self)
         end
         
-        RallyLogger.info(self, "Found #{artifact_array.length} updated #{@artifact_type}s in #{name()}.")
+        RallyLogger.info(self, "Found '#{artifact_array.length}' updated '#{@artifact_type}' objects in '#{name()}'.")
 
         return artifact_array
       end
-#########
+#---------------------#
       # This method will hide the actual call of how to get the id field's value
       def get_id_value(artifact)
         RallyLogger.debug(self,"#{artifact.attributes}")
         return artifact["Id"]
       end
-######### 
+#---------------------#
       def get_object_link(artifact)
         # We want:  "<a href='https://<TestRail server>/<Artifact ID>'>link</a>"
         linktext = artifact[@id_field] || 'link'
         it = "<a href='https://#{@url}/#{artifact['Id']}'>#{linktext}</a>"
         return it
       end
-#########
+#---------------------#
       def get_SOQL_where_for_new()
         query_string = "WHERE #{@external_id_field} = null"
         if !@soql_copy.nil? && !@soql_copy.empty?
@@ -215,7 +266,7 @@ module RallyEIF
         query_string.gsub!(/\"/,"'")
         return query_string
       end
-#########
+#---------------------#
       def get_SOQL_where_for_updates()
         query_string = "WHERE #{@external_id_field} != ''"
         if !@update_query.nil? && !@update_query.empty?
@@ -224,11 +275,11 @@ module RallyEIF
         query_string.gsub!(/\"/,"'")
         return query_string
       end
-#########
+#---------------------#
       def pre_create(int_work_item)
         return int_work_item
       end
-#########
+#---------------------#
       def set_field_types(artifact_class)
         @field_types    = {}
         @boolean_fields = []
@@ -242,60 +293,53 @@ module RallyEIF
         end
         return @boolean_fields
       end
-#########
+#---------------------#
       def update_internal(artifact, int_work_item)
         #artifact.update_attributes int_work_item
-require 'debugger'
-debugger
         case artifact['TypeOfArtifact']
         when :testcase
-require 'debugger'
-debugger
           updated_item = @testrail.send_post("update_case/#{artifact['id']}", int_work_item)
-require 'debugger'
-debugger
           updated_item.merge!({'TypeOfArtifact'=>:testcase})
         else
           raise UnrecoverableException.new("Unrecognize value for artifact: '#{artifact}'", self)
         end
-        return artifact
+        return updated_item
       end
-#########
+#---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
-        RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field (#{@external_id_field}) to '#{external_id}'")
-require 'debugger'
-debugger
         external_id_sysname = 'custom_' + @external_id_field.to_s.downcase
+        RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field '#{@external_id_sysname}' to '#{external_id}'")
         fields = {external_id_sysname => external_id} # we should always have one
 
         # Rally gives us a full '<a href=' tag
         if !item_link.nil?
           url_only = item_link.gsub(/.* href=["'](.*?)['"].*$/, '\1')
-          fields[@external_item_link_field] = url_only unless @external_item_link_field.nil?
+          fields["custom_#{@external_item_link_field.to_s.downcase}"] = url_only unless @external_item_link_field.nil?
         end
-        RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{@external_item_link_field}) to '#{fields[@external_item_link_field]}'")
+        RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{@external_item_link_field}) to '#{fields["custom_#{@external_item_link_field.to_s.downcase}"]}'")
         
-        fields[@external_end_user_id_field] = end_user_id unless @external_end_user_id_field.nil?
-        RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>> field (#{@external_end_user_id_field}) to '#{fields[@external_end_user_id_field]}'")
+        fields["custom_#{@external_end_user_id_field.to_s.downcase}"] = end_user_id unless @external_end_user_id_field.nil?
+        RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>> field (#{@external_end_user_id_field}) to '#{fields["custom_#{@external_end_user_id_field.to_s.downcase}"]}'")
         
         update_internal(artifact, fields)
       end
-#########
+#---------------------#
       def validate
+
         status_of_all_fields = true  # Assume all fields passed
-        
-        if !field_exists?(@external_id_field)
+        sysname = 'custom_' + @external_id_field.to_s.downcase
+        if !field_exists?(sysname)
           status_of_all_fields = false
-          RallyLogger.error(self, "TestRail <ExternalIDField> '#{@external_id_field}' does not exist")
+          RallyLogger.error(self, "TestRail <ExternalIDField> '#{sysname}' does not exist")
         end
-      
+
         if @id_field
           if !field_exists?(@id_field)
             status_of_all_fields = false
             RallyLogger.error(self, "TestRail <IDField> '#{@id_field}' does not exist")
           end
         end
-      
+
         if @external_end_user_id_field
           if !field_exists?(@external_end_user_id_field)
             status_of_all_fields = false
@@ -305,7 +349,7 @@ debugger
         
         return status_of_all_fields
       end
-#########
+#---------------------#
     end
   end
 end
