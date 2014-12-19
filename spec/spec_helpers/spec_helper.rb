@@ -1,10 +1,10 @@
 # Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
 require 'rspec'
-require 'simplecov'
+#require 'simplecov'
 
-SimpleCov.start do
-  add_filter "/spec/"
-end
+#SimpleCov.start do
+#  add_filter "/spec/"
+#end
 
 require 'date'
 require 'time'
