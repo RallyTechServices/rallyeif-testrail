@@ -9,7 +9,7 @@ require File.dirname(__FILE__) + '/test_configuration_helper'
 require 'rallyeif-wrk'
 require File.dirname(__FILE__) + '/../../lib/rallyeif-testrail'
 
-#  sf_spec_helper.rb
+#  testrail_spec_helper.rb
 #
 
 include YetiTestUtils
@@ -111,37 +111,52 @@ module TestRailSpecHelper
     return connection
   end
   
-  def create_testrail_testcase(connection, extra_fields = nil)
+  # Creates a TestRail Artifact
+  # @arg1 connection - TestRail connection packet
+  # @arg2 extra_fields (optional) to be added to new object
+  # @ret1 item - the new TestRail object created
+  # @ret2 title - the 'title' field of the new object
+  #
+  def create_testrail_artifact(connection, extra_fields = nil)
     #connection.testrail.materialize("User")
-    current_user = TestConfig::TR_USER
-    
+    #current_user = TestConfig::TR_USER
     title = 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s
-    # title        string   The title of the test case (required)
-    # type_id      int      The ID of the case type
-    #                          1 Automated
-    #                          2 Functionality
-    #                          3 Performance
-    #                          4 Regression
-    #                          5 Usability
-    #                          6 Other
-    # priority_id  int      The ID of the case priority
-    # estimate     timespan The estimate, e.g. "30s" or "1m 45s"
-    # milestone_id int      The ID of the milestone to link to the test case
-    # refs         string   A comma-separated list of references/requirements
-    fields  = {
-      'title'         => title,
-      'type_id'       => 6,
-      'priority_id'   => 5,
-      'estimate'      => '3m14s',
-      'milestone_id'  => 1,
-      'refs'          => '',
-    }
-      
+
+    case TestConfig::TR_ARTIFACT_TYPE
+    when "TestCase"
+      # title        string   The title of the test case (required)
+      # type_id      int      The ID of the case type
+      #                          1 Automated
+      #                          2 Functionality
+      #                          3 Performance
+      #                          4 Regression
+      #                          5 Usability
+      #                          6 Other
+      # priority_id  int      The ID of the case priority
+      # estimate     timespan The estimate, e.g. "30s" or "1m 45s"
+      # milestone_id int      The ID of the milestone to link to the test case
+      # refs         string   A comma-separated list of references/requirements
+      fields  = {
+        'title'         => title,
+        'type_id'       => 6,
+        'priority_id'   => 5,
+        'estimate'      => '3m14s',
+        'milestone_id'  => 1,
+        'refs'          => '',
+      }
+    when "DogMeat"
+      # do "DogMeat" stuff here
+    when "PossumMeat"
+      # do "PossumMeat" stuff here
+    else
+      raise UnrecoverableException.new("Unrecognize value for @artifact_class ('#{@artifact_class}')", self)
+    end
+
     if !extra_fields.nil?
       fields.merge!(extra_fields)
     end
     item = connection.create(fields)
-    return [item, fields['Title']]
+    return [item, fields['title']]
   end
   
 end
