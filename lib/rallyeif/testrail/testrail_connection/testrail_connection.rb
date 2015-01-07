@@ -146,7 +146,6 @@ module RallyEIF
               #'refs'          => '',
             #}
             new_item = @testrail.send_post('add_case/1', int_work_item)
-            new_item.merge!({'TypeOfArtifact'=>'testcase'})
           else
             raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
           end
@@ -158,7 +157,7 @@ module RallyEIF
       end
 #---------------------#
       def delete(item)
-        case item['TypeOfArtifact']
+        case @artifact_type.to_s.downcase
         when 'testcase'
           retval = @testrail.send_post("delete_case/#{item['id']}",nil)
         else
@@ -190,10 +189,9 @@ module RallyEIF
       end
 #---------------------#
       def find(item)
-        case item['TypeOfArtifact']
+        case @artifact_type.to_s.downcase
         when 'testcase'
           found_item = @testrail.send_get("get_case/#{item['id']}")
-          found_item.merge!({'TypeOfArtifact'=>'testcase'})
         else
           raise UnrecoverableException.new("Unrecognize value for TypeOfArtifact (#{item['TypeOfArtifact']})", self)
         end
@@ -233,17 +231,32 @@ module RallyEIF
       def find_new()
         RallyLogger.info(self, "Find New TestRail '#{@artifact_type}' objects")
         artifact_array = []
-        begin
-          query = "SELECT Id FROM #{@artifact_type} #{get_SOQL_where_for_new()}"
-          RallyLogger.debug(self, " Using SOQL query: #{query}")
-          artifact_array = find_by_query(query)
-        rescue Exception => ex
-          raise UnrecoverableException.new("Failed search using query: #{query}.\n TestRail api returned:#{ex.message}", self)
-          raise UnrecoverableException.copy(ex,self)
+        case @artifact_type.to_s
+        when 'testcase'
+          begin
+
+# ToDo: Add project, milestone, section, etc
+            
+            artifact_array = @testrail.send_get("get_cases/1")
+          rescue Exception => ex
+            raise UnrecoverableException.new("Failed to find new testcases.\n TestRail api returned:#{ex.message}", self)
+          end  
+        else
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> (#{@artifact_type})", self)
         end
+
+        #
+        # get only the new ones
+        #
+        returned_artifacts = []
+        artifact_array.each do |artifact|
+          if artifact["custom_#{@external_id_field.downcase}"].nil?
+            returned_artifacts.push(artifact)
+          end
+        end
+        RallyLogger.info(self, "Found '#{returned_artifacts.length}' new TestRail '#{@artifact_type}' objects")
         
-        RallyLogger.info(self, "Found '#{artifact_array.length}' new '#{@artifact_type}' objects in '#{name()}'.")
-        return artifact_array
+        return returned_artifacts
       end
 #---------------------#
       def find_updates(reference_time)
@@ -255,7 +268,6 @@ module RallyEIF
           artifact_array = find_by_query(query)
         rescue Exception => ex
           raise UnrecoverableException.new("Failed search using query: #{query}.\n TestRail api returned:#{ex.message}", self)
-          raise UnrecoverableException.copy(ex,self)
         end
         
         RallyLogger.info(self, "Found '#{artifact_array.length}' updated '#{@artifact_type}' objects in '#{name()}'.")
@@ -265,8 +277,7 @@ module RallyEIF
 #---------------------#
       # This method will hide the actual call of how to get the id field's value
       def get_id_value(artifact)
-        RallyLogger.debug(self,"#{artifact.attributes}")
-        return artifact["id"]
+        return get_value(artifact,'id')
       end
 #---------------------#
       def get_object_link(artifact)
@@ -276,17 +287,20 @@ module RallyEIF
         return it
       end
 #---------------------#
+      def get_value(artifact,field_name)
+        return artifact["#{field_name.downcase}"]
+      end
+#---------------------#
       def pre_create(int_work_item)
         return int_work_item
       end
 #---------------------#
       def update_internal(artifact, new_fields)
         #artifact.update_attributes int_work_item
-        case artifact['TypeOfArtifact']
+        case @artifact_type.to_s.downcase
         when 'testcase'
           all_fields = artifact
           all_fields.merge!(new_fields)
-          all_fields.merge!({'TypeOfArtifact'=>'testcase'})
           updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
         else
           raise UnrecoverableException.new("Unrecognize value for TypeOfArtifact: '#{artifact['TypeOfArtifact']}'", self)
