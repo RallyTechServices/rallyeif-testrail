@@ -13,8 +13,13 @@
     </RallyConnection>
 
     <TestRailConnection>
-
-   </TestRailConnection>
+        <Url></Url>
+        <User></User>
+        <Password></Password>
+        <ExternalIDField></ExternalIDField>
+        <ArtifactType></ArtifactType>
+        <Project></Project>
+    </TestRailConnection>
 
    <Connector>
     <FieldMapping>
