@@ -6,9 +6,11 @@ include YetiTestUtils
 
 describe "Given configuration in the TestRail section" do
   before(:all) do
-    #
+    #trc = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    #puts "Our TestRail connection contains:"
+    #pp trc
   end
-   
+
   it "(1), should successfully load basic config settings " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect(connection.artifact_type).to be(TestConfig::TR_ARTIFACT_TYPE.downcase.to_sym)
@@ -22,6 +24,7 @@ describe "Given configuration in the TestRail section" do
   it "(2a), should successfully verify existence of fields " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect( connection.field_exists?(TestConfig::TR_ID_FIELD) ).to be(true)
+    expect( connection.field_exists?('custom_' + TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
     expect( connection.field_exists?(TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
     expect( connection.field_exists?(:title) ).to be(true)
   end
