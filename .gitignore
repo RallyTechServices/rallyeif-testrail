@@ -2,9 +2,7 @@
 .idea/
 .project
 Gemfile.lock
-configs/test1*
-configs/test2*
-configs/test_connections-JPs*
+configs/test*
 coverage/
 pkg/
 rallylog.log*
