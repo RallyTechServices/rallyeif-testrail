@@ -46,6 +46,7 @@ module TestConfig
   TR_URL      = "https://tsrally.testrail.com"
   TR_USER     = "technical-services@rallydev.com"
   TR_PASSWORD = ""
+  TR_PROJECT  = ""
   
   # Required custom fields (must be created before running these tests):
   TR_EXTERNAL_ID_FIELD    = ""                  # type = Integer
