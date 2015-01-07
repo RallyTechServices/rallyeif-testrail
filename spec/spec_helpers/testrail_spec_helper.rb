@@ -31,6 +31,7 @@ module TestRailSpecHelper
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+        <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
 
@@ -41,16 +42,30 @@ module TestRailSpecHelper
         <User>#{TestConfig::TR_USER}</User>
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
 
-  TESTRAIL_MISSING_URL_CONFIG = "
+    TESTRAIL_MISSING_PROJECT_CONFIG = "
+    <config>
+      <TestRailConnection>
+        <Url>#{TestConfig::TR_URL}</Url>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+        <!-- And no project... -->
+      </TestRailConnection>
+    </config>"
+
+    TESTRAIL_MISSING_URL_CONFIG = "
     <config>
       <TestRailConnection>
         <User>#{TestConfig::TR_USER}</User>
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+        <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
     
@@ -122,8 +137,8 @@ module TestRailSpecHelper
     #current_user = TestConfig::TR_USER
     title = 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s
 
-    case TestConfig::TR_ARTIFACT_TYPE
-    when "TestCase"
+    case TestConfig::TR_ARTIFACT_TYPE.downcase
+    when 'testcase'
       # title        string   The title of the test case (required)
       # type_id      int      The ID of the case type
       #                          1 Automated
@@ -144,10 +159,6 @@ module TestRailSpecHelper
         'milestone_id'  => 1,
         'refs'          => '',
       }
-    when "DogMeat"
-      # do "DogMeat" stuff here
-    when "PossumMeat"
-      # do "PossumMeat" stuff here
     else
       raise UnrecoverableException.new("Unrecognize value for @artifact_class ('#{@artifact_class}')", self)
     end
