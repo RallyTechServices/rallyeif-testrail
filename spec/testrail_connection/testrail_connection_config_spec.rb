@@ -24,6 +24,7 @@ describe "Given configuration in the TestRail section" do
   it "(2a), should successfully verify existence of fields " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect( connection.field_exists?(TestConfig::TR_ID_FIELD) ).to be(true)
+    expect( connection.field_exists?('custom_' + TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
     expect( connection.field_exists?(TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
     expect( connection.field_exists?(:title) ).to be(true)
   end
