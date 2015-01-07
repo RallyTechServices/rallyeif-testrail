@@ -150,6 +150,7 @@ module RallyEIF
         when 'testcase'
           if !@tr_fields_tc.member? field_name.to_s.downcase
             RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
+            RallyLogger.debug(self, "Available fields: #{@tr_fields_tc}")
             return false
           end
         else
