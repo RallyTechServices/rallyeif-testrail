@@ -15,7 +15,7 @@ module RallyEIF
                           
     class TestRailConnection < Connection
 
-      attr_reader :testrail, :artifact_class
+      attr_reader :testrail, :project
       
       #
       # Global info that will be obtained from the TestRail system.
@@ -84,7 +84,7 @@ module RallyEIF
         ####code here
         
         #
-        # Build a hash of custom fields: {'system_name' => ['name', 'label', 'type_id', 'String of type-id']}
+        # Build a hash of custom fields: {'system_name' => ['name', 'label', 'type_id', 'String of type-id'], global???}
         #
         begin   
           tmp = @testrail.send_get('get_case_fields')
@@ -192,8 +192,6 @@ module RallyEIF
 #---------------------#
       # find_by_external_id is forced from inheritance
       def find_by_external_id(external_id)
-        #return {@external_id_field.to_s=>external_id}
-        #return @artifact_class.find(external_id)
         begin
           query = "SELECT Id,Subject FROM #{@artifact_type} WHERE #{@external_id_field} = '#{external_id}'"
           RallyLogger.debug(self, " Using SOQL query: #{query}")
