@@ -6,9 +6,11 @@ include YetiTestUtils
 
 describe "Given configuration in the TestRail section" do
   before(:all) do
-    #
+    #trc = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    #puts "Our TestRail connection contains:"
+    #pp trc
   end
-   
+
   it "(1), should successfully load basic config settings " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect(connection.artifact_type).to be(TestConfig::TR_ARTIFACT_TYPE.downcase.to_sym)
