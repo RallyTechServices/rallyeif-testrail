@@ -42,6 +42,7 @@ module TestRailSpecHelper
         <User>#{TestConfig::TR_USER}</User>
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <!-- And no ArtifactType -->
         <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
@@ -54,13 +55,14 @@ module TestRailSpecHelper
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
-        <!-- And no project... -->
+        <!-- And no Project -->
       </TestRailConnection>
     </config>"
 
     TESTRAIL_MISSING_URL_CONFIG = "
     <config>
       <TestRailConnection>
+        <!-- And no Url -->
         <User>#{TestConfig::TR_USER}</User>
         <Password>#{TestConfig::TR_PASSWORD}</Password>
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
@@ -133,8 +135,8 @@ module TestRailSpecHelper
   # @ret2 title - the 'title' field of the new object
   #
   def create_testrail_artifact(connection, extra_fields = nil)
-    #connection.testrail.materialize("User")
-    #current_user = TestConfig::TR_USER
+    
+    # Generate a title like "Time-2015-01-06_12:04:12-965143"
     title = 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s
 
     case TestConfig::TR_ARTIFACT_TYPE.downcase
@@ -151,16 +153,14 @@ module TestRailSpecHelper
       # estimate     timespan The estimate, e.g. "30s" or "1m 45s"
       # milestone_id int      The ID of the milestone to link to the test case
       # refs         string   A comma-separated list of references/requirements
-      fields  = {
-        'title'         => title,
-        'type_id'       => 6,
-        'priority_id'   => 5,
-        'estimate'      => '3m14s',
-        'milestone_id'  => 1,
-        'refs'          => '',
-      }
+      fields = {'title'         => title    ,
+                'type_id'       => 6        ,
+                'priority_id'   => 5        ,
+                'estimate'      => '3m14s'  ,
+                'milestone_id'  => 1        ,
+                'refs'          => ''       }
     else
-      raise UnrecoverableException.new("Unrecognize value for @artifact_class ('#{@artifact_class}')", self)
+      raise UnrecoverableException.new("Unrecognize value for TR_ARTIFACT_TYPE ('#{TestConfig::TR_ARTIFACT_TYPE.downcase}')", self)
     end
 
     if !extra_fields.nil?
