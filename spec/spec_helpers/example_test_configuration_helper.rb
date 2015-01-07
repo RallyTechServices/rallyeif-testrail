@@ -27,19 +27,42 @@ module TestConfig
   RALLY_PROJECT_HIERARCHICAL_CHILD      = "Reseller Site"
   RALLY_PROJECT_HIERARCHICAL_GRANDCHILD = "Reseller Portal Team"
   
-  # TestRail connection information
+  # In order to run these test on a new TestRail setup, you'll need:
+  # 01) A TestRail Project created.
+  # 02) A TestRail Section created.
+  # 03) A TestRail Milestone created.
+  # 04) Custom fields mentioned at the bottom of this module/file.
+  # 05) The API must be enabled for your instance; otherwise you'll get error:
+  #     TestRail api returned:TestRail API returned HTTP 403
+  #     ("The API is disabled for your installation.
+  #       It can be enabled in the administration area in TestRail under:
+  #         --> Administration (top right)
+  #         --> Site Settings
+  #         --> API tab
+  #         --> check 'Enable API'
+  #         --> Save Settings .")
+  
+  # The TestRail account to be used for testing:
   TR_URL      = "https://somewhere.testrail.com"
   TR_USER     = "***REMOVED***"
   TR_PASSWORD = ""
   
+  # Required custom fields (must be created before running these tests):
+  TR_EXTERNAL_ID_FIELD    = ""                  # type = Integer
+  TR_EXTERNAL_EU_ID_FIELD = ""                  # type = String
+  TR_CROSSLINK_FIELD      = ""                  # type = Url (link)
   # To create a custom field in TestRail:
-  # Click on 'Setup' (near top right), 'Build' (left column), 'Customize Cases', 'Fields',
-  # then scroll down to "Case Custom Fields & Relationships", click 'New'...
-  # (note in config file they must end with "__c")
-  TR_EXTERNAL_ID_FIELD    = "RallyObjectID__c"
-  TR_EXTERNAL_EU_ID_FIELD = "RallyFormattedID__c"
-  TR_ID_FIELD             = "CaseNumber"
-  TR_CROSSLINK_FIELD      = "RallyURL__c"
-  TR_ARTIFACT_TYPE        = "Case"
+  # 1) Login
+  # 2) Click 'Administration' (top right)
+  # 3) Click 'Customizations'
+  # 4) Click 'Add Field' under 'Test Case Field'
+  # 5) Enter values for 'Label', 'Description', System Name', and 'Type'
+  # 6) Click 'Add Projects & Options'
+  # 7) Click 'Selected Projects' tab in pop-up; select 'These options apply to all projects'
+  # 8) Click 'OK'
+  # 9) Click 'Add Field'
+
+  TR_ARTIFACT_TYPE        = "TestCase"          #
+  TR_ID_FIELD             = "id"                # type = Integer
 
 end

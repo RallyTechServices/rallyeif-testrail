@@ -10,6 +10,8 @@ XMLUtils               = RallyEIF::WRK::XMLUtils
 
 module RallyEIF
   module WRK
+    
+    VALID_TESTRAIL_ARTIFACTS = ['testcase']
                           
     class TestRailConnection < Connection
 
@@ -108,16 +110,16 @@ module RallyEIF
           case @artifact_type
           when :testcase
             # Create a TestRail TestCase
-            tc_fields  = {
-              'title'         => 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s,
-              'type_id'       => 6,
-              'priority_id'   => 5,
-              'estimate'      => '3m14s',
-              'milestone_id'  => 1,
-              'refs'          => '',
-            }
-            new_item = @testrail.send_post('add_case/1', tc_fields)
-            new_item.merge!({'TypeOfArtifact'=>:testcase})
+            #tc_fields  = {
+              #'title'         => 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s,
+              #'type_id'       => 6,
+              #'priority_id'   => 5,
+              #'estimate'      => '3m14s',
+              #'milestone_id'  => 1,
+              #'refs'          => '',
+            #}
+            new_item = @testrail.send_post('add_case/1', int_work_item)
+            new_item.merge!({'TypeOfArtifact'=>'testcase'})
           else
             raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
           end
@@ -130,12 +132,8 @@ module RallyEIF
 #---------------------#
       def delete(item)
         case item['TypeOfArtifact']
-        when :testcase
+        when 'testcase'
           retval = @testrail.send_post("delete_case/#{item['id']}",nil)
-        when :dogmeat
-          # do :dogmeat stuff
-        when :catmeat
-          # do catmeat stuff
         else
           raise UnrecoverableException.new("Unrecognize value for item['TypeOfArtifact'] ('#{item['TypeOfArtifact']}')", self)
         end
@@ -148,18 +146,14 @@ module RallyEIF
 #---------------------#
       def field_exists? (field_name)
 
-        case @artifact_type
-        when :testcase
+        case @artifact_type.to_s
+        when 'testcase'
           if !@tr_fields_tc.member? field_name.to_s.downcase
             RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
             return false
           end
-        when :dogmeat
-          # do :dogmeat stuff
-        when :catmeat
-          # do catmeat stuff
         else
-          raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
+          raise UnrecoverableException.new("Unrecognized <ArtifactType> value of '#{@artifact_type}'", self)
         end
         
         return true
@@ -167,13 +161,9 @@ module RallyEIF
 #---------------------#
       def find(item)
         case item['TypeOfArtifact']
-        when :testcase
+        when 'testcase'
           found_item = @testrail.send_get("get_case/#{item['id']}")
-          found_item.merge!({'TypeOfArtifact'=>:testcase})
-        when :dogmeat
-          # do :dogmeat stuff
-        when :catmeat
-          # do catmeat stuff
+          found_item.merge!({'TypeOfArtifact'=>'testcase'})
         else
           raise UnrecoverableException.new("Unrecognize value for item['TypeOfArtifact'] ('#{item['TypeOfArtifact']}')", self)
         end
@@ -258,24 +248,6 @@ module RallyEIF
         return it
       end
 #---------------------#
-      def get_SOQL_where_for_new()
-        query_string = "WHERE #{@external_id_field} = null"
-        if !@soql_copy.nil? && !@soql_copy.empty?
-          query_string = "#{query_string} AND (#{@soql_copy})"
-        end
-        query_string.gsub!(/\"/,"'")
-        return query_string
-      end
-#---------------------#
-      def get_SOQL_where_for_updates()
-        query_string = "WHERE #{@external_id_field} != ''"
-        if !@update_query.nil? && !@update_query.empty?
-          query_string = "#{query_string} AND #{@update_query}"
-        end
-        query_string.gsub!(/\"/,"'")
-        return query_string
-      end
-#---------------------#
       def pre_create(int_work_item)
         return int_work_item
       end
@@ -294,12 +266,14 @@ module RallyEIF
         return @boolean_fields
       end
 #---------------------#
-      def update_internal(artifact, int_work_item)
+      def update_internal(artifact, new_fields)
         #artifact.update_attributes int_work_item
         case artifact['TypeOfArtifact']
-        when :testcase
-          updated_item = @testrail.send_post("update_case/#{artifact['id']}", int_work_item)
-          updated_item.merge!({'TypeOfArtifact'=>:testcase})
+        when 'testcase'
+          all_fields = artifact
+          all_fields.merge!(new_fields)
+          all_fields.merge!({'TypeOfArtifact'=>'testcase'})
+          updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
         else
           raise UnrecoverableException.new("Unrecognize value for artifact: '#{artifact}'", self)
         end
@@ -307,12 +281,10 @@ module RallyEIF
       end
 #---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
-
-        fields = {}
-        
+        new_fields = {}
         if !external_id.nil?
           sysname = 'custom_' + @external_id_field.to_s.downcase
-          fields[sysname.intern] = external_id
+          new_fields[sysname] = external_id
           RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field '#{sysname}' to '#{external_id}'")
         end
 
@@ -321,27 +293,28 @@ module RallyEIF
           url_only = item_link.gsub(/.* href=["'](.*?)['"].*$/, '\1')
           if !@external_item_link_field.nil?
             sysname = 'custom_' + @external_item_link_field.to_s.downcase
-            fields[sysname.intern] = url_only
+            new_fields[sysname] = url_only
             RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{sysname}) to '#{url_only}'")
           end
         end
 
         if !@external_end_user_id_field.nil?
           sysname = 'custom_' + @external_end_user_id_field.to_s.downcase
-          fields[sysname.intern] = end_user_id
+          new_fields[sysname] = end_user_id
           RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>> field (#{sysname}) to '#{@end_user_id}'")
         end
-
-        update_internal(artifact, fields)
+        
+        updated_item = update_internal(artifact, new_fields)
+        return updated_item
       end
 #---------------------#
       def validate
-
         status_of_all_fields = true  # Assume all fields passed
-        sysname = 'custom_' + @external_id_field.to_s.downcase
-        if !field_exists?(sysname)
+        
+        sys_name = 'custom_' + @external_id_field.to_s.downcase
+        if !field_exists?(sys_name)
           status_of_all_fields = false
-          RallyLogger.error(self, "TestRail <ExternalIDField> '#{sysname}' does not exist")
+          RallyLogger.error(self, "TestRail <ExternalIDField> '#{sys_name}' does not exist")
         end
 
         if @id_field
