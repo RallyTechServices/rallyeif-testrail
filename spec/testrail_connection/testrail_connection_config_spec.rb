@@ -19,6 +19,13 @@ describe "Given configuration in the TestRail section" do
     expect(connection.validate).to be(true)
   end
   
+  it "(2a), should successfully verify existence of fields " do
+    connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    expect( connection.field_exists?(TestConfig::TR_ID_FIELD) ).to be(true)
+    expect( connection.field_exists?(TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
+    expect( connection.field_exists?(:title) ).to be(true)
+  end
+  
   it "(3), should reject missing required fields" do
     expect { testrail_connect(TestRailSpecHelper::TESTRAIL_MISSING_ARTIFACT_CONFIG) }.to raise_error(/ArtifactType must not be null/)
     expect { testrail_connect(TestRailSpecHelper::TESTRAIL_MISSING_URL_CONFIG) }.to raise_error(/Url must not be null/)
