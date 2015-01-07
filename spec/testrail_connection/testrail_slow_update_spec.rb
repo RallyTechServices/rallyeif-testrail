@@ -25,13 +25,13 @@ describe "When trying to update TestRail items" do
     @items_to_remove.push(item)
 
     #2 update ext id
-    @connection.update_external_id_fields(item, '2147483647', nil, nil)
+    new_id_value = 2147483647
+    @connection.update_external_id_fields(item, new_id_value, nil, nil)
     
     #3 verify was placed properly
-    #found_item = @connection.artifact_class.find(item['id'])
     found_item = @connection.find(item)
-    expect(found_item["custom_#{TestConfig::TR_EXTERNAL_ID_FIELD.downcase}"]).to eq(2147483647)
-    
+    sys_name = 'custom_' + @connection.external_id_field.to_s.downcase
+    expect(found_item[sys_name]).to eq(new_id_value)
   end
   
   it "(2), should not fail if no <CrosslinkUrlField> is defined" do
@@ -44,10 +44,10 @@ describe "When trying to update TestRail items" do
     @connection.update_external_id_fields(item, nil, nil, "<a href='http://www.rallydev.com'>Click for Rally!</a>")
     
     #3 verify was placed properly
-    #found_item = @connection.artifact_class.find(item['id'])
     found_item = @connection.find(item)
-    expect(found_item["custom_#{TestConfig::TR_CROSSLINK_FIELD.downcase}"]).to be_nil
-    
+    #expect(found_item["custom_#{TestConfig::TR_CROSSLINK_FIELD.downcase}"]).to be_nil
+    sys_name = 'custom_' + TestConfig::TR_CROSSLINK_FIELD.downcase
+    expect(found_item[sys_name]).to be_nil
   end
 
   it "(3), should update a new case with an external_item_link_field (<CrosslinkUrlField>)" do
@@ -67,7 +67,8 @@ describe "When trying to update TestRail items" do
     #3 verify was placed properly
     #found_item = @connection.artifact_class.find(item['id'])
     found_item = @connection.find(item)
-    expect(found_item["custom_#{TestConfig::TR_CROSSLINK_FIELD.downcase}"]).to eq("#{new_url}")
+    sys_name = 'custom_' + TestConfig::TR_CROSSLINK_FIELD.downcase
+    expect(found_item[sys_name]).to eq("#{new_url}")
     
   end
   
@@ -85,7 +86,8 @@ describe "When trying to update TestRail items" do
      
      #3 verify was placed properly
      found_item = @connection.find(item)
-     expect(found_item["custom_#{TestConfig::TR_EXTERNAL_EU_ID_FIELD.downcase}"]).to eq(new_fmtid)
+     sys_name = 'custom_' + TestConfig::TR_EXTERNAL_EU_ID_FIELD.downcase
+     expect(found_item[sys_name]).to eq(new_fmtid)
      
    end
 
