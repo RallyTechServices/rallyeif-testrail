@@ -12,7 +12,6 @@ describe "When trying to update TestRail items" do
   
   after(:each) do    
     @items_to_remove.each do |item|
-      #item.delete
       @connection.delete(item)
     end
     @connection.disconnect()

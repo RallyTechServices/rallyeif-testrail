@@ -84,6 +84,13 @@ module RallyEIF
         ####code here
         
         #
+        # Build hash of real fields or add to next fields
+        #
+        @tr_fields_tc = {'title' => ['title', 'title', 1, 'String', nil],
+                         'id'    => ['id', 'id', 2, 'Integer', nil]
+                        }
+          
+        #
         # Build a hash of custom fields: {'system_name' => ['name', 'label', 'type_id', 'String of type-id'], global???}
         #
         begin   
@@ -168,10 +175,12 @@ module RallyEIF
 
         case @artifact_type.to_s
         when 'testcase'
-          if !@tr_cust_fields_tc.member? field_name.to_s.downcase
-            RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
-            RallyLogger.debug(self, "Available fields: #{@tr_fields_tc}")
-            return false
+          if (!@tr_cust_fields_tc.member? field_name.to_s.downcase) && (!@tr_fields_tc.member? field_name.to_s.downcase)
+            if (!@tr_cust_fields_tc.member? 'custom_' + field_name.to_s.downcase)
+              RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
+              RallyLogger.debug(self, "Available fields: #{@tr_fields_tc}, #{@tr_cust_fields_tc}")
+              return false
+            end
           end
         else
           raise UnrecoverableException.new("Unrecognized <ArtifactType> value of '#{@artifact_type}'", self)
