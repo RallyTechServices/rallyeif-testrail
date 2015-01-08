@@ -3,6 +3,8 @@
 .project
 Gemfile.lock
 configs/test*
+configs/Encoded-*
+configs/*time.file
 coverage/
 pkg/
 rallylog.log*
