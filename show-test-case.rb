@@ -1,16 +1,22 @@
 #!/usr/bin/env ruby
-#require 'debugger';debugger
 
 require './testrail-api-master/ruby/testrail.rb'
-require 'pp'
 
 $my_testrail_url        = 'https://somewhere.testrail.com'
-$my_testrail_user       = '***REMOVED***'
-$my_testrail_password   = '***REMOVED***'
+$my_testrail_user       = 'user@company.com'
+$my_testrail_password   = 'MySecretPassword'
 
-$my_testrail_url        = 'https://jpkole.testrail.com'
-$my_testrail_user       = 'jp@kole.com'
-$my_testrail_password   = '***REMOVED***'
+# ------------------------------------------------------------------------------
+# Load (and maybe override with) my personal/private variables from a file.
+#
+my_vars = "./show-test-case.vars.rb"
+if FileTest.exist?( my_vars )
+    print "Sourcing #{my_vars}...\n"
+    require my_vars
+else
+    print "File #{my_vars} not found; skipping require...\n"
+end
+
 
 def get_testrail_connection()
     @tr_con         = nil
