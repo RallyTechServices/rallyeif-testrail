@@ -20,9 +20,11 @@ module RallyEIF
       #
       # Global info that will be obtained from the TestRail system.
       #
-      @testrail     = '' # The connecton packet used to make request.
-      @tr_user_info = '' # TestRail information about user in config file.
-      @tr_fields_tc = '' # Hash of test case object fields.
+      @testrail           = '' # The connecton packet used to make request.
+      @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
+      @tr_fields_tc       = {} # Hash of standard fields on test case.
+      @tr_project_tc      = {} # Information about project in config file.
+      @tr_user_info       = {} # TestRail information about user in config file.
       
       def initialize(config=nil)
         super()
@@ -68,6 +70,82 @@ module RallyEIF
         @testrail.user     = @user
         @testrail.password = @password
         
+
+        #
+        # Build a hash of TestCase custom fields.  Each entry:
+        #   {'system_name' => ['name', 'label', 'type_id', [ProjIDs]}
+        #
+        type_ids = ['?Unknown?-0',  # 0
+                    'String',       # 1
+                    'Integer',      # 2
+                    'Text',         # 3
+                    'URL',          # 4
+                    'Checkbox',     # 5
+                    'Dropdown',     # 6
+                    'User',         # 7
+                    'Date',         # 8
+                    'Milestone',    # 9
+                    'Steps',        # 10
+                    '?Unknown?-11', # 11
+                    'Multi-select', # 12
+                   ]
+        begin   
+          cust_fields = @testrail.send_get('get_case_fields')
+        rescue Exception => ex
+          raise UnrecoverableException.new("Could not retrieve TestCase custom field names'.\n TestRail api returned:#{ex.message}", self)
+        end
+
+        @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
+        cust_fields.each do |item|
+          # Is this custom field defined for the current project?
+          if item['configs'][0].to_hash['context']['is_global'] == true
+            # nil means good for all projects
+            pids = nil
+          else
+            # save list of specific project IDs
+            pids = item['configs'][0].to_hash['context']['project_ids']
+          end
+          @tr_cust_fields_tc[item['system_name']] =  [item['name'],
+                                                      item['label'],
+                                                      item['type_id'],
+                                                      pids]
+        end
+        
+        
+        #
+        # Build hash of TestCase standard fields (since there is no API method to get them).
+        #                  Field-name          Type (1=String, 2=Integer)
+        @tr_fields_tc = { 'created_by'        => 2,
+                          'created_on'        => 2,
+                          'estimate'          => 1,
+                          'estimate_forecast' => 1,
+                          'id'                => 2,
+                          'milestone_id'      => 2,
+                          'priority_id'       => 2,
+                          'refs'              => 1,
+                          'section_id'        => 2,
+                          'suite_id'          => 2,
+                          'title'             => 1,
+                          'type_id'           => 2,
+                          'updated_by'        => 2,
+                          'updated_on'        => 2}
+
+
+        #
+        # Build a hash of TestRail projects
+        #
+        uri = 'get_projects'
+        all_projects = @testrail.send_get(uri)
+        
+        if all_projects.length < 1
+          raise UnrecoverableException.new("Could not find any projects in TestRail.\n TestRail api returned:#{ex.message}", self)
+        end
+
+        all_projects.each do |this_proj|
+          #print "\tid:'#{this_proj['id']}'  name:'#{this_proj['name']}'  url:'#{this_proj['url']}'\n"
+        end
+        
+        
         #
         # Request info for the user listed in config file
         #
@@ -76,56 +154,6 @@ module RallyEIF
           RallyLogger.debug(self, "User information retrieve successfully for '#{@user}'")
         rescue Exception => ex
           raise UnrecoverableException.new("Cannot retrieve information for user '#{@user}'.\n TestRail api returned:#{ex.message}", self)
-        end
-        
-        #
-        # Build a hash of TestRail projects
-        #
-        ####code here
-        
-        #
-        # Build hash of real fields or add to next fields
-        #
-        @tr_fields_tc = {'title' => ['title', 'title', 1, 'String', nil],
-                         'id'    => ['id', 'id', 2, 'Integer', nil]
-                        }
-          
-        #
-        # Build a hash of custom fields: {'system_name' => ['name', 'label', 'type_id', 'String of type-id'], global???}
-        #
-        begin   
-          tmp = @testrail.send_get('get_case_fields')
-        rescue Exception => ex
-          raise UnrecoverableException.new("Cannot retrieve information for user '#{@user}'.\n TestRail api returned:#{ex.message}", self)
-        end
-        
-        @tr_cust_fields_tc = {}
-        str_types = ['',             # 0
-                     'String',       # 1
-                     'Integer',      # 2
-                     'Text',         # 3
-                     'URL',          # 4
-                     'Checkbox',     # 5
-                     'Dropdown',     # 6
-                     'User',         # 7
-                     'Date',         # 8
-                     'Milestone',    # 9
-                     'Steps',        # 10
-                     '?Unknown?',    # 11
-                     'Multi-select', # 12
-                    ]
-        tmp.each do |item|
-          # Is this custom field defined for the current project?
-          if item['configs'][0].to_hash['context']['is_global'] == true
-            pids = nil
-          else
-            pids = item['configs'][0].to_hash['context']['project_ids']
-          end
-          @tr_cust_fields_tc[item['system_name']] =  [item['name'],
-                                                      item['label'],
-                                                      item['type_id'],
-                                                      str_types[item['type_id']],
-                                                      pids]
         end
         
         return @testrail
@@ -161,7 +189,7 @@ module RallyEIF
         when 'testcase'
           retval = @testrail.send_post("delete_case/#{item['id']}",nil)
         else
-          raise UnrecoverableException.new("Unrecognize value for item['TypeOfArtifact'] ('#{item['TypeOfArtifact']}')", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}')", self)
         end
         return nil
       end
@@ -193,7 +221,7 @@ module RallyEIF
         when 'testcase'
           found_item = @testrail.send_get("get_case/#{item['id']}")
         else
-          raise UnrecoverableException.new("Unrecognize value for TypeOfArtifact (#{item['TypeOfArtifact']})", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type})", self)
         end
         return found_item
       end
@@ -303,7 +331,7 @@ module RallyEIF
           all_fields.merge!(new_fields)
           updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
         else
-          raise UnrecoverableException.new("Unrecognize value for TypeOfArtifact: '#{artifact['TypeOfArtifact']}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType>: '#{@artifact_type}'", self)
         end
         return updated_item
       end
