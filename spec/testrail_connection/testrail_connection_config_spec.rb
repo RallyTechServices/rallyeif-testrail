@@ -6,6 +6,9 @@ include YetiTestUtils
 
 describe "Given configuration in the TestRail section" do
   before(:all) do
+    # add code here...
+    
+    # Nice for debugging:
     #trc = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     #puts "Our TestRail connection contains:"
     #pp trc
@@ -21,7 +24,7 @@ describe "Given configuration in the TestRail section" do
     expect(connection.validate).to be(true)
   end
   
-  it "(2a), should successfully verify existence of fields " do
+  it "(3), should successfully verify existence of fields " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect( connection.field_exists?(TestConfig::TR_ID_FIELD) ).to be(true)
     expect( connection.field_exists?('custom_' + TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
@@ -29,12 +32,12 @@ describe "Given configuration in the TestRail section" do
     expect( connection.field_exists?(:title) ).to be(true)
   end
   
-  it "(3), should reject missing required fields" do
+  it "(4), should reject missing required fields" do
     expect { testrail_connect(TestRailSpecHelper::TESTRAIL_MISSING_ARTIFACT_CONFIG) }.to raise_error(/ArtifactType must not be null/)
     expect { testrail_connect(TestRailSpecHelper::TESTRAIL_MISSING_URL_CONFIG) }.to raise_error(/Url must not be null/)
   end
   
-  it "(4), should reject invalid artifact types" do
+  it "(5), should reject invalid artifact types" do
     fred_artifact_config = YetiTestUtils::modify_config_data(
                             TestRailSpecHelper::TESTRAIL_STATIC_CONFIG,   #1 CONFIG  - The config file to be augmented
                             "TestRailConnection",                         #2 SECTION - XML element of CONFIG to be augmented
@@ -43,10 +46,10 @@ describe "Given configuration in the TestRail section" do
                             "replace",                                    #5 ACTION  - [before, after, replace, delete]
                             "ArtifactType")                               #6 REFTAG  - Existing tag in SECTION
     connection = testrail_connect(fred_artifact_config)
-    expect { connection.validate }.to raise_error(/Unrecognized <ArtifactType> value/)
+    expect { connection.validate }.to raise_error(/Unrecognize value for <ArtifactType>/)
   end
   
-  it "(5), should be OK with tags named <ExternalEndUserIDField>, <CrosslinkUrlField> and <IDField>" do
+  it "(6), should be OK with tags named <ExternalEndUserIDField>, <CrosslinkUrlField> and <IDField>" do
     # Checking <ExternalEndUserIDField>
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_EXTERNAL_FIELDS_CONFIG)
     expect(connection.external_end_user_id_field).to be(TestConfig::TR_EXTERNAL_EU_ID_FIELD.to_sym)
@@ -54,7 +57,7 @@ describe "Given configuration in the TestRail section" do
     expect(connection.id_field).to be(TestConfig::TR_ID_FIELD.to_sym)
   end
   
-  it "(6), should be OK with missing <ExternalEndUserIDField>, <CrosslinkUrlField> and <IDField>" do
+  it "(7), should be OK with missing <ExternalEndUserIDField>, <CrosslinkUrlField> and <IDField>" do
     # Checking <ExternalEndUserIDField>
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect(connection.external_end_user_id_field).to be(nil)
