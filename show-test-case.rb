@@ -44,7 +44,7 @@ def get_projects()
     all_PROJECTs = @tr_con.send_get(uri)
     print "\n03) Total Projects found: #{all_PROJECTs.length}\n"
     if all_PROJECTs.length > 0
-        all_PROJECTs.each_with_index do |this_PROJECT, ndx|
+        all_PROJECTs.each do |this_PROJECT|
             print "\tid:'#{this_PROJECT['id']}'  name:'#{this_PROJECT['name']}'  url:'#{this_PROJECT['url']}'\n"
         end
     end
@@ -87,11 +87,16 @@ def get_case_fields()
         print " %23s"%[this_CF['system_name']]
         print " %16s"%[this_CF['label']]
         print " %7s"%[this_CF['display_order']]
-
-        if this_CF['configs'][0].to_hash['context']['is_global'] == true
-            gpids = [true]
-        else 
-            gpids = this_CF['configs'][0].to_hash['context']['project_ids']
+#require 'debugger';debugger
+        
+        if this_CF['configs'] == []
+            gpids = '[unassigned]'
+        else
+            if this_CF['configs'][0].to_hash['context']['is_global'] == true
+                gpids = '[global]'
+            else 
+                gpids = this_CF['configs'][0].to_hash['context']['project_ids'].to_s
+            end
         end
         print " %s"%[gpids]
 

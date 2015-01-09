@@ -15,15 +15,16 @@ module RallyEIF
                           
     class TestRailConnection < Connection
 
-      attr_reader :testrail, :project
+      attr_reader   :testrail
+      attr_accessor :project
       
       #
       # Global info that will be obtained from the TestRail system.
       #
       @testrail           = '' # The connecton packet used to make request.
+      @tr_project_tc      = {} # Information about project in config file.
       @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
       @tr_fields_tc       = {} # Hash of standard fields on test case.
-      @tr_project_tc      = {} # Information about project in config file.
       @tr_user_info       = {} # TestRail information about user in config file.
       
       def initialize(config=nil)
@@ -33,7 +34,8 @@ module RallyEIF
       
       def read_config(config)
         super(config)
-        @url = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
+        @url     = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
+        @project = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
       end
       
       def name()
@@ -72,7 +74,32 @@ module RallyEIF
         
 
         #
-        # Build a hash of TestCase custom fields.  Each entry:
+        # PROJECTS:  Build a hash of TestRail projects
+        #
+        uri = 'get_projects'
+        all_projects = @testrail.send_get(uri)
+        
+        if all_projects.length < 1
+          raise UnrecoverableException.new("Could not find any projects in TestRail.\n TestRail api returned:#{ex.message}", self)
+        end
+
+        found_projects = []
+        all_projects.each do |proj|
+          if proj['name'] == @project
+            found_projects.push proj
+            if found_projects.length == 1
+              RallyLogger.info(self,"Found project:")
+            end
+            RallyLogger.info(self,"\tid:#{proj['id']}  name:#{proj['name']}  url:#{proj['url']}   is_completed:#{proj['is_completed']}")
+          end
+        end
+        if found_projects.length != 1
+          raise UnrecoverableException.new("Found '#{found_projects.length}' projects named '#{@project}'; the connector needs one and only one", self)
+        end
+        
+        
+        #
+        # CUSTOM FIELDS:  Build a hash of TestCase custom fields.  Each entry:
         #   {'system_name' => ['name', 'label', 'type_id', [ProjIDs]}
         #
         type_ids = ['?Unknown?-0',  # 0
@@ -97,12 +124,15 @@ module RallyEIF
 
         @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
         cust_fields.each do |item|
-          # Is this custom field defined for the current project?
+          # Ignore the custom field if it is not unassigned to any project...
+          next if item['configs'] == []
+            
+          # Is this custom field global (for all projects)?
           if item['configs'][0].to_hash['context']['is_global'] == true
             # nil means good for all projects
             pids = nil
           else
-            # save list of specific project IDs
+            # not global, save the list of project IDs
             pids = item['configs'][0].to_hash['context']['project_ids']
           end
           @tr_cust_fields_tc[item['system_name']] =  [item['name'],
@@ -110,10 +140,11 @@ module RallyEIF
                                                       item['type_id'],
                                                       pids]
         end
-        
-        
+
+
         #
-        # Build hash of TestCase standard fields (since there is no API method to get them).
+        # STANDARD FIELDS:  Build hash of TestCase standard fields
+        #                   (done manually since there is no API method to get them).
         #                  Field-name          Type (1=String, 2=Integer)
         @tr_fields_tc = { 'created_by'        => 2,
                           'created_on'        => 2,
@@ -132,50 +163,26 @@ module RallyEIF
 
 
         #
-        # Build a hash of TestRail projects
-        #
-        uri = 'get_projects'
-        all_projects = @testrail.send_get(uri)
-        
-        if all_projects.length < 1
-          raise UnrecoverableException.new("Could not find any projects in TestRail.\n TestRail api returned:#{ex.message}", self)
-        end
-
-        all_projects.each do |this_proj|
-          #print "\tid:'#{this_proj['id']}'  name:'#{this_proj['name']}'  url:'#{this_proj['url']}'\n"
-        end
-        
-        
-        #
-        # Request info for the user listed in config file
+        # USER INFO:  Request info for the user listed in config file
         #
         begin
           @tr_user_info = @testrail.send_get("get_user_by_email&email=#{@user}")
           RallyLogger.debug(self, "User information retrieve successfully for '#{@user}'")
         rescue Exception => ex
-          raise UnrecoverableException.new("Cannot retrieve information for user '#{@user}'.\n TestRail api returned:#{ex.message}", self)
+          raise UnrecoverableException.new("Cannot retrieve information for <User> '#{@user}'.\n TestRail api returned:#{ex.message}", self)
         end
         
         return @testrail
       end
 #---------------------#
       def create_internal(int_work_item)
-        RallyLogger.debug(self,"Preparing to create one TestRail: '#{@artifact_type}'")
+        RallyLogger.debug(self,"Preparing to create a TestRail: '#{@artifact_type}'")
         begin
           case @artifact_type
           when :testcase
-            # Create a TestRail TestCase
-            #tc_fields  = {
-              #'title'         => 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s,
-              #'type_id'       => 6,
-              #'priority_id'   => 5,
-              #'estimate'      => '3m14s',
-              #'milestone_id'  => 1,
-              #'refs'          => '',
-            #}
             new_item = @testrail.send_post('add_case/1', int_work_item)
           else
-            raise UnrecoverableException.new("Unrecognize value for @artifact_type ('#{@artifact_type}')", self)
+            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> ('#{@artifact_type}')", self)
           end
         rescue RuntimeError => ex
           raise RecoverableException.copy(ex, self)
@@ -210,7 +217,7 @@ module RallyEIF
             end
           end
         else
-          raise UnrecoverableException.new("Unrecognized <ArtifactType> value of '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> ('#{@artifact_type}')", self)
         end
         
         return true
@@ -341,7 +348,7 @@ module RallyEIF
         if !external_id.nil?
           sys_name = 'custom_' + @external_id_field.to_s.downcase
           new_fields[sys_name] = external_id
-          RallyLogger.debug(self, "Updating TestRail item <ExternalIDField> field '#{sys_name}' to '#{external_id}'")
+          RallyLogger.debug(self, "Updating TestRail item <ExternalIDField>: '#{sys_name}' to '#{external_id}'")
         end
 
         # Rally gives us a full '<a href=' tag
@@ -350,14 +357,14 @@ module RallyEIF
           if !@external_item_link_field.nil?
             sys_name = 'custom_' + @external_item_link_field.to_s.downcase
             new_fields[sys_name] = url_only
-            RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField> field (#{sys_name}) to '#{url_only}'")
+            RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField>: '#{sys_name}' to '#{url_only}'")
           end
         end
 
         if !@external_end_user_id_field.nil?
           sys_name = 'custom_' + @external_end_user_id_field.to_s.downcase
           new_fields[sys_name] = end_user_id
-          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField> field (#{sys_name}) to '#{@end_user_id}'")
+          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{@end_user_id}'")
         end
         
         updated_item = update_internal(artifact, new_fields)
@@ -368,7 +375,7 @@ module RallyEIF
         status_of_all_fields = true  # Assume all fields passed
         
         sys_name = 'custom_' + @external_id_field.to_s.downcase
-        if !field_exists?(sys_name)
+        if !field_exists?(@external_id_field)
           status_of_all_fields = false
           RallyLogger.error(self, "TestRail <ExternalIDField> '#{sys_name}' does not exist")
         end
