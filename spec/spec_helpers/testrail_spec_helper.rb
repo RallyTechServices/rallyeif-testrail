@@ -111,6 +111,7 @@ module TestRailSpecHelper
         <ExternalEndUserIDField>#{TestConfig::TR_EXTERNAL_EU_ID_FIELD}</ExternalEndUserIDField>
         <CrosslinkUrlField>#{TestConfig::TR_CROSSLINK_FIELD}</CrosslinkUrlField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+        <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
       

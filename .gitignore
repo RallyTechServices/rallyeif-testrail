@@ -2,6 +2,7 @@
 .idea/
 .project
 Gemfile.lock
+LOCK.tmp
 configs/test*
 configs/Encoded-*
 configs/*time.file
