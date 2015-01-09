@@ -2,9 +2,13 @@
 .idea/
 .project
 Gemfile.lock
+LOCK.tmp
 configs/test*
+configs/Encoded-*
+configs/*time.file
 coverage/
 pkg/
 rallylog.log*
 reldir*
+show-test-case.vars.rb
 test_configuration_helper.rb
