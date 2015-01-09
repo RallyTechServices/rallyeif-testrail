@@ -181,13 +181,14 @@ module RallyEIF
           case @artifact_type
           when :testcase
             new_item = @testrail.send_post('add_case/1', int_work_item)
+            gui_id = 'C' + new_item['id'].to_s
           else
             raise UnrecoverableException.new("Unrecognize value for <ArtifactType> ('#{@artifact_type}')", self)
           end
         rescue RuntimeError => ex
           raise RecoverableException.copy(ex, self)
         end
-        RallyLogger.debug(self,"Created #{@artifact_type} #{new_item['id']}")
+        RallyLogger.debug(self,"Created #{@artifact_type} #{gui_id}")
         return new_item
       end
 #---------------------#
@@ -211,8 +212,9 @@ module RallyEIF
         when 'testcase'
           if (!@tr_cust_fields_tc.member? field_name.to_s.downcase) && (!@tr_fields_tc.member? field_name.to_s.downcase)
             if (!@tr_cust_fields_tc.member? 'custom_' + field_name.to_s.downcase)
-              RallyLogger.error(self, "TestRail field '#{field_name.to_s}' is not a valid field name for object type '#{@artifact_type}'")
-              RallyLogger.debug(self, "Available fields: #{@tr_fields_tc}, #{@tr_cust_fields_tc}")
+              RallyLogger.error(self, "TestRail field '#{field_name.to_s}' not a valid field name for Test Cases in project '#{@project}'")
+              RallyLogger.debug(self, "  available fields (standard): #{@tr_fields_tc}")
+              RallyLogger.debug(self, "  available fields (custom): #{@tr_cust_fields_tc}")
               return false
             end
           end
