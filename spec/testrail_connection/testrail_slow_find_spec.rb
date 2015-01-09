@@ -5,8 +5,11 @@ include TestRailSpecHelper
 include YetiTestUtils
 
 describe "When trying to find TestRail items" do
+
   before(:each) do
     @connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
+
     @items_to_remove = []
   end
   
@@ -47,6 +50,68 @@ describe "When trying to find TestRail items" do
     
     #4 second find should have the same number of items
     expect(all_items_before.length).to eq(all_items_after.length)
+  end
+  
+  it "(3), should not find test case without an externalid" do
+    #1 find all 'updated' items
+    time = (Time.now() -600).utc
+    all_items_before = @connection.find_updates(time)
+    
+    #2 create item and give an ID
+    item,title = create_testrail_artifact(@connection)
+    @connection.update_external_id_fields(item, @unique_number , nil, nil)
+    @items_to_remove.push(item)
+   
+    #3 find all 'updated' items again
+    all_items_after = @connection.find_updates(time)
+    
+    #4 second find should have more...
+    expect(all_items_before.length).to be < (all_items_after.length)
+  end
+  
+  it "(4), should find updated test case without an externalid" do
+    #1 find all 'updated' items
+    time = (Time.now() -600).utc
+    all_items_before = @connection.find_updates(time)
+    
+    #2 create item and give an ID
+    item,title = create_testrail_artifact(@connection)
+    @items_to_remove.push(item)
+   
+    #3 find all 'updated' items again
+    all_items_after = @connection.find_updates(time)
+    
+    #4 second find should have more...
+    expect(all_items_before.length).to be < (all_items_after.length)
+    
+    #5 second find should actually contain this item
+    found_me = false
+    all_items_after.each do |found_item|
+      if @connection.get_value(found_item,'title') == title
+        found_me = true
+      end
+    end
+    expect(found_me).to eq(true)
+  end
+  
+  it "(5), should not find test case with an externalid updated before the timestamp" do
+    #1 before the timestamp create item and give an ID
+    item,title = create_testrail_artifact(@connection)
+    @connection.update_external_id_fields(item, @unique_number , nil, nil)
+    @items_to_remove.push(item)
+    
+    #2 find all 'updated' items
+    time = (Time.now() -600).utc
+    all_items = @connection.find_updates(time)
+
+    #3  find should not contain this item
+    found_me = false
+    all_items.each do |found_item|
+      if @connection.get_value(found_item,'title') == title
+        found_me = true
+      end
+    end
+    expect(found_me).to eq(false)
   end
   
  end
