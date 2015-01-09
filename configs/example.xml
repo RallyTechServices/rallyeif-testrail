@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <config>
     <RallyConnection>
-      <Url>rally1.rallydev.com</Url>
-      <WorkspaceName>My WS</WorkspaceName>
-      <Projects>
-        <Project>My Project</Project>
-      </Projects>
-      <User>person@place.com</User>
-      <Password>secret</Password>
-      <ArtifactType>Defect</ArtifactType>
-      <ExternalIDField>ExternalID</ExternalIDField>
+        <Url>rally1.rallydev.com</Url>
+        <WorkspaceName>My WS</WorkspaceName>
+        <Projects>
+            <Project>My Project</Project>
+        </Projects>
+        <User>person@place.com</User>
+        <Password>secret</Password>
+        <ArtifactType>Defect</ArtifactType>
+        <ExternalIDField>ExternalID</ExternalIDField>
     </RallyConnection>
 
     <TestRailConnection>
@@ -21,15 +21,15 @@
         <Project></Project>
     </TestRailConnection>
 
-   <Connector>
-    <FieldMapping>
-      <Field><Rally>Name</Rally><Other>Subject</Other></Field>
-    </FieldMapping>
-  </Connector>
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Name</Rally><Other>Title</Other></Field>
+        </FieldMapping>
+    </Connector>
   
-  <ConnectorRunner>
-  	<LogLevel>Debug</LogLevel>
-    <Preview>false</Preview>
-    <Services>COPY_TESTRAIL_TO_RALLY</Services>
-  </ConnectorRunner>
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+    </ConnectorRunner>
 </config>
