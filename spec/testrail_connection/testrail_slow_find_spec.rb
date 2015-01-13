@@ -9,7 +9,6 @@ describe "When trying to find TestRail items" do
   before(:each) do
     @connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
-
     @items_to_remove = []
   end
   
@@ -42,7 +41,7 @@ describe "When trying to find TestRail items" do
     #2 create item and give it an external id
     item,title = create_testrail_artifact(@connection)
     @items_to_remove.push(item)
-    new_id_value = 2147483647
+    new_id_value = @unique_number
     @connection.update_external_id_fields(item, new_id_value, nil, nil)
    
     #3 find all 'new' items again
@@ -54,7 +53,7 @@ describe "When trying to find TestRail items" do
   
   it "(3), should not find test case without an externalid" do
     #1 find all 'updated' items
-    time = (Time.now() -600).utc
+    time = (Time.now() - 600).utc
     all_items_before = @connection.find_updates(time)
     
     #2 create item and give an ID
@@ -71,7 +70,7 @@ describe "When trying to find TestRail items" do
   
   it "(4), should find updated test case without an externalid" do
     #1 find all 'updated' items
-    time = (Time.now() -600).utc
+    time = (Time.now() - 600).utc
     all_items_before = @connection.find_updates(time)
     
     #2 create item and give an ID
@@ -93,15 +92,16 @@ describe "When trying to find TestRail items" do
     end
     expect(found_me).to eq(true)
   end
-  
+
   it "(5), should not find test case with an externalid updated before the timestamp" do
-    #1 before the timestamp create item and give an ID
+    #1 create item and give an ExternalID (it will have a timestamp of 'now')
     item,title = create_testrail_artifact(@connection)
     @connection.update_external_id_fields(item, @unique_number , nil, nil)
     @items_to_remove.push(item)
-    
-    #2 find all 'updated' items
-    time = (Time.now() -600).utc
+   
+    #2 pause for 2 seconds, then find all items 'updated' after 'now'
+    sleep (2.0)
+    time = Time.now().utc
     all_items = @connection.find_updates(time)
 
     #3  find should not contain this item

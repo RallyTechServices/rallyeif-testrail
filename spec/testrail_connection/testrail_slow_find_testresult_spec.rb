@@ -13,10 +13,10 @@ describe "When trying to find TestRail test case results" do
     tcr_config = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
-        "ArtifactType",                                     #3 NEWTAG  - New tag name in reference to REFTAG
+        "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
         'TestResult',                               #4 VALUE   - New value to put into NEWTAG
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
-        "ArtifactType")                                     #6 REFTAG  - Existing tag in SECTION
+        "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
     @tcr_connection = testrail_connect(tcr_config)
         
     @items_to_remove = []
@@ -32,7 +32,7 @@ describe "When trying to find TestRail test case results" do
   # TODO: Will have to figure out how to add a test case result, probably have to create a test first,
   #       then create a test result using add_result_for_case
   # 
-  it "(1) should find a result that has a test case with an external ID but does NOT have its own externalID " do
+  it "(1), should find a result that has a test case with an external ID but does NOT have its own externalID " do
     #1 find all 'new' results
     all_items_before = @tcr_connection.find_new()
     
@@ -55,7 +55,7 @@ describe "When trying to find TestRail test case results" do
     expect(all_items_before.length).to be < (all_items_after.length)
   end
   
-  it "(2) should NOT find a result that has a test case with an external ID and has its own externalID " do
+  it "(2), should NOT find a result that has a test case with an external ID and has its own externalID " do
     #1 find all 'new' results
     all_items_before = @tcr_connection.find_new()
     
@@ -79,7 +79,7 @@ describe "When trying to find TestRail test case results" do
     expect(all_items_before.length).to eq(all_items_after.length)
   end
   
-  it "(3) should NOT find a result that has a test case without an external ID" do
+  it "(3), should NOT find a result that has a test case without an external ID" do
     #1 find all 'new' results
     all_items_before = @tcr_connection.find_new()
     

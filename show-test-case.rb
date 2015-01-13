@@ -87,7 +87,58 @@ def get_case_fields()
         print " %23s"%[this_CF['system_name']]
         print " %16s"%[this_CF['label']]
         print " %7s"%[this_CF['display_order']]
-#require 'debugger';debugger
+        
+        if this_CF['configs'] == []
+            gpids = '[unassigned]'
+        else
+            if this_CF['configs'][0].to_hash['context']['is_global'] == true
+                gpids = '[global]'
+            else 
+                gpids = this_CF['configs'][0].to_hash['context']['project_ids'].to_s
+            end
+        end
+        print " %s"%[gpids]
+
+        print "\n"
+    end
+end
+
+
+def get_result_fields()
+    # ------------------------------------------------------------------
+    # Get result custom fields.
+    #
+    uri = 'get_result_fields'
+    @tr_result_fields  = @tr_con.send_get(uri)
+    print "\n05) Result custom fields:\n"
+    print "\t                                                     system                  display global/\n"
+    print "\tid             name         type_id                   _name            label  _order projIDs\n"
+    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -------\n"
+
+    cf_types = ['',             # 0
+                'String',       # 1
+                'Integer',      # 2
+                'Text',         # 3
+                'URL',          # 4
+                'Checkbox',     # 5
+                'Dropdown',     # 6
+                'User',         # 7
+                'Date',         # 8
+                'Milestone',    # 9
+                'Steps',        # 10
+                '?Unknown?',    # 11
+                'Multi-select', # 12
+                ]
+    @tr_result_fields.sort_by { |rec| rec['id']}.each do |this_CF|
+        print "\t%2d"%[this_CF['id']]
+        print " %16s"%[this_CF['name']]
+
+        tis="#{cf_types[this_CF['type_id']]}(#{this_CF['type_id']})"
+        print " %15s"%[tis]
+
+        print " %23s"%[this_CF['system_name']]
+        print " %16s"%[this_CF['label']]
+        print " %7s"%[this_CF['display_order']]
         
         if this_CF['configs'] == []
             gpids = '[unassigned]'
@@ -111,7 +162,7 @@ def get_priorities()
     #
     uri = 'get_priorities'
     @tr_priorities = @tr_con.send_get(uri)
-    print "\n05) Known priorities (* = default):\n"
+    print "\n06) Known priorities (* = default):\n"
     print "\t  id  name              short_name    pri\n"
     print "\t  --  ----------------  ------------  ---\n"
     @tr_priorities.sort_by { |rec| rec['id']}.each do |this_PR|
@@ -135,7 +186,7 @@ def get_case_types
     #
     uri = 'get_case_types'
     @tr_case_types   = @tr_con.send_get(uri)
-    print "\n06) Known test case types (* = default):\n"
+    print "\n07) Known test case types (* = default):\n"
     @tr_case_types.sort_by { |rec| rec['id']}.each do |this_CT|
         if this_CT['is_default'] == true
             prefix = '*'
@@ -149,30 +200,51 @@ end
 
 def get_cases(project_id:1, suite_id:'', section_id:'')
     uri = "get_cases/#{project_id}&suite_id=#{suite_id}&section_id=#{section_id}"
-    all_CASEs = @tr_con.send_get(uri)
-    print "\n07) Total test cases found: #{all_CASEs.length}"
-    if all_CASEs.length > 0
-        all_CASEs.each_with_index do |this_CASE, ndx|
+    all_cases = @tr_con.send_get(uri)
+    print "\n08) Total test cases found: #{all_cases.length}"
+    if all_cases.length > 0
+        all_cases.each_with_index do |item, ndx|
             if ndx == 0
                 print "  ("
             else
-                print "," if ndx != all_CASEs.length
+                print "," if ndx != all_cases.length
             end
-            print "#{this_CASE['id']}"
+            print "#{item['id']}"
         end
         print ")\n"
     end
-    return all_CASEs.last
+    return all_cases.last
 end
 
 
 def get_case(case_id: 1)
     uri = "get_case/#{case_id}"
-    this_CASE = @tr_con.send_get(uri)
-    print "\n08) Test case number '#{case_id}' fields:\n"
+    this_case = @tr_con.send_get(uri)
+        #{"id"						=> 397,
+		# "title"					=> "Time-2015-01-09_08:08:00-678043",
+		# "section_id"				=> 1,
+		# "type_id"					=> 6,
+		# "priority_id"				=> 5,
+		# "milestone_id"			=> 1,
+		# "refs"					=> nil,
+		# "created_by"				=> 1,
+		# "created_on"				=> 1420816081,
+		# "updated_by"				=> 1,
+		# "updated_on"				=> 1420816083,
+		# "estimate"				=> "3m",
+		# "estimate_forecast"		=> "3m",
+		# "suite_id"				=> 1,
+		# "custom_rallyobjectid"	=> 2147483647,
+		# "custom_rallyurl"			=> nil,
+		# "custom_rallyformattedid" => nil,
+		# "custom_proj_one_only"	=> nil,
+		# "custom_preconds"			=> nil,
+		# "custom_steps"			=> nil,
+		# "custom_expected"			=> nil}
+    print "\n09) Test case number '#{case_id}' fields:\n"
     print "\tord  field name              value\n"
     print "\t---  ----------------------  --------------------------------------\n"
-    this_CASE.each_with_index do |keyval, ndx|
+    this_case.each_with_index do |keyval, ndx|
         key = keyval[0]
         val = keyval[1]
         # Deal with dates:
@@ -185,10 +257,76 @@ end
 
 def get_runs(project_id:1)
     uri = "get_runs/#{project_id}"
-    all_RUNs = @tr_con.send_get(uri)
-    return all_RUNs.last
+    all_runs = @tr_con.send_get(uri)
+        #[{"id"						=> 1,
+        #  "suite_id"				=> 1,
+        #  "name"					=> "Test Run 01 - 12/3/2014",
+        #  "description"			=> "This is a ....",
+        #  "milestone_id"			=> 1,
+        #  "assignedto_id"			=> 1,
+        #  "include_all"			=> true,
+        #  "is_completed"			=> false,
+        #  "completed_on"			=> nil,
+        #  "config"					=> nil,
+        #  "config_ids"				=> [],
+        #  "passed_count"			=> 0,
+        #  "blocked_count"			=> 0,
+        #  "untested_count"			=> 16,
+        #  "retest_count"			=> 0,
+        #  "failed_count"			=> 0,
+        #  "custom_status1_count"   => 0,
+        #  "custom_status2_count"	=> 0,
+        #  "custom_status3_count"	=> 0,
+        #  "custom_status4_count"	=> 0,
+        #  "custom_status5_count"	=> 0,
+        #  "custom_status6_count"	=> 0,
+        #  "custom_status7_count"	=> 0,
+        #  "project_id"				=> 1,
+        #  "plan_id"				=> nil,
+        #  "created_on"				=> 1417639979,
+        #  "created_by"				=> 1,
+        #  "url"					=> "https://tsrally.testrail.com/index.php?/runs/view/1"}]
+    print "\n10) Found '#{all_runs.length}' Runs for project '#{project_id}':\n"
+    print "\t                                proj     created\n"
+    print "\tid  name                          id          on\n"
+    print "\t--  --------------------------  ----  ----------\n"
+    all_runs.each do |item|
+        print "\t%2d"%[item['id']]
+        print "  %-26s"%[item['name']]
+        print "  %4d"%[item['project_id']]
+        print "  %10d"%[item['created_on']]
+        print "\n"
+    end
+    return all_runs.last
 end
 
+
+def get_results(test_id: 6)
+    uri = "get_results/#{test_id}"
+    all_results = @tr_con.send_get(uri)
+        #{"id"			    	    => 79,
+        # "test_id"		    	    => 6,
+        # "status_id"	    	    => 1,
+        # "created_by"	    	    => 1,
+        # "created_on"	    	    => 1420833528,
+        # "assignedto_id"           => 1,
+        # "comment"		    	    => "JP testing",
+        # "version"		    	    => "3.14",
+        # "elapsed"		    	    => "1m 23s",
+        # "defects"		    	    => nil,
+        # "custom_rallyobjectid"    => nil}
+    print "\n11) Found '#{all_results.length}' Results for Test Id '#{test_id}':\n"
+    print "\t                                test     created\n"
+    print "\tid  name                          id          on\n"
+    print "\t--  --------------------------  ----  ----------\n"
+    all_results.each do |item|
+        print "\t%2d"%[item['id']]
+        print "  %-26s"%[item['name']]
+        print "  %4d"%[item['test_id']]
+        print "  %10d"%[item['created_on']]
+        print "\n"
+    end
+end
 
 
 ##########---MAIN---##########
@@ -196,11 +334,13 @@ end
 get_testrail_connection()
 get_projects()
 get_case_fields()
+get_result_fields()
 get_priorities()
 get_case_types()
 lc = get_cases(project_id:1)
 get_case(case_id:lc['id'])
 get_runs()
+get_results()
 
 exit
 
