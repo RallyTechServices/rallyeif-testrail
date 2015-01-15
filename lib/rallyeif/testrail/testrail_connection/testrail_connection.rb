@@ -228,17 +228,21 @@ module RallyEIF
       end
 #---------------------#
       def create_internal(int_work_item)
+        # Hardcode these until we understand more...
         section_id = 1
+        run_id     = 1
+        case_id    = 2
         RallyLogger.debug(self,"Preparing to create a TestRail: '#{@artifact_type}' in Section #{section_id}")
         begin
-          case @artifact_type
-          when :testcase
+          case @artifact_type.to_s.downcase
+          when 'testcase'
             new_item = @testrail.send_post("add_case/#{section_id}", int_work_item)
             gui_id = 'C' + new_item['id'].to_s # How it appears in the GUI
-          when 'other-value-1'
-            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-          when 'other-value-2'
-            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          when 'testrun'
+            new_item = @testrail.send_post("add_run/#{@tr_project['id']}", int_work_item)
+          when 'testresult'
+            new_item = @testrail.send_post("add_result_for_case/#{run_id}/#{case_id}", int_work_item)
+            gui_id = '(no ID)'
           else
             raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
           end
@@ -253,10 +257,10 @@ module RallyEIF
         case @artifact_type.to_s.downcase
         when 'testcase'
           retval = @testrail.send_post("delete_case/#{item['id']}",nil)
-        when 'other-value-1'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+        when 'testrun'
+          retval = @testrail.send_post("delete_run/#{item['id']}",nil)
+        when 'testresult'
+          # ToDo: How to delete a Result?  Not in documentation?
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -353,7 +357,7 @@ module RallyEIF
       def find_new()
         RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects")
         returned_artifacts = []
-        case @artifact_type.to_s
+        case @artifact_type.to_s.downcase
         when 'testcase'
           begin
 # ToDo: Add milestone, section, etc
@@ -364,11 +368,14 @@ module RallyEIF
         when 'testresult'
           begin
 # ToDo: Add milestone, section, etc
-            returned_artifacts = @testrail.send_get("get_results/#{@tr_project['id']}")
+            # get_results_for_case/:run_id/:case_id
+            run_id = 1
+            case_id = 2
+            returned_artifacts = @testrail.send_get("get_results_for_case/#{run_id}/#{case_id}")
           rescue Exception => ex
             raise UnrecoverableException.new("Failed to find new Test Results.\n TestRail api returned:#{ex.message}", self)
           end
-        when 'other-value-2'
+        when 'testrun'
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
@@ -438,9 +445,11 @@ module RallyEIF
           all_fields = artifact
           all_fields.merge!(new_fields)
           updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
-        when 'other-value-1'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        when 'other-value-2'
+        when 'testrun'
+          all_fields = artifact
+          all_fields.merge!(new_fields)
+          updated_item = @testrail.send_post("update_run/#{artifact['id']}", all_fields)
+        when 'result'
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
