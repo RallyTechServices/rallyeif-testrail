@@ -18,7 +18,7 @@ describe "When trying to find TestRail items" do
     end
     @connection.disconnect()
   end
-  
+
   it "(1), should find new test case without an externalid" do
     #1 find all 'new' items
     all_items_before = @connection.find_new()
@@ -67,30 +67,30 @@ describe "When trying to find TestRail items" do
     #4 second find should have more...
     expect(all_items_before.length).to be < (all_items_after.length)
   end
-  
-  it "(4), should find updated test case without an externalid" do
+
+  it "(4), should not find updated test case without an externalid" do
     #1 find all 'updated' items
     time = (Time.now() - 600).utc
     all_items_before = @connection.find_updates(time)
     
-    #2 create item and give an ID
+    #2 create item (it will not have a externalID)
     item,title = create_testrail_artifact(@connection)
     @items_to_remove.push(item)
    
-    #3 find all 'updated' items again
+    #3 find all 'updated' items again (should not find our new item)
     all_items_after = @connection.find_updates(time)
     
     #4 second find should have more...
-    expect(all_items_before.length).to be < (all_items_after.length)
+    expect(all_items_before.length).to eq(all_items_after.length)
     
-    #5 second find should actually contain this item
+    #5 second find should not contain this item
     found_me = false
     all_items_after.each do |found_item|
       if @connection.get_value(found_item,'title') == title
         found_me = true
       end
     end
-    expect(found_me).to eq(true)
+    expect(found_me).to eq(false)
   end
 
   it "(5), should not find test case with an externalid updated before the timestamp" do
