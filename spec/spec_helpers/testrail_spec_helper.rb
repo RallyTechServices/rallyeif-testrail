@@ -136,39 +136,112 @@ module TestRailSpecHelper
   # @ret2 title - the 'title' field of the new object
   #
   def create_testrail_artifact(connection, extra_fields = nil)
-    
     # Generate a title like "Time-2015-01-06_12:04:12-965143"
     title = 'Time-' + Time.now.strftime("%Y-%m-%d_%H:%M:%S") + '-' + Time.now.usec.to_s
-
-    case TestConfig::TR_ARTIFACT_TYPE.downcase
+    current_artifact = connection.artifact_type.to_s.downcase
+    case current_artifact
     when 'testcase'
-      # title        string   The title of the test case (required)
-      # type_id      int      The ID of the case type
-      #                          1 Automated
-      #                          2 Functionality
-      #                          3 Performance
-      #                          4 Regression
-      #                          5 Usability
-      #                          6 Other
-      # priority_id  int      The ID of the case priority
-      # estimate     timespan The estimate, e.g. "30s" or "1m 45s"
-      # milestone_id int      The ID of the milestone to link to the test case
-      # refs         string   A comma-separated list of references/requirements
-      fields = {'title'         => title    ,
-                'type_id'       => 6        ,
-                'priority_id'   => 5        ,
-                'estimate'      => '3m14s'  ,
-                'milestone_id'  => 1        ,
-                'refs'          => ''       }
+      # TestCase system fields (* = system fields supported on POST):
+      #     created_by        int        The ID of the user who created the test case
+      #     created_on        timestamp  The date/time when the test case was created (as UNIX timestamp)
+      #  *  estimate          timespan   The estimate, e.g. "30s" or "1m 45s"
+      #     estimate_forecast timespan   The estimate forecast, e.g. "30s" or "1m 45s"
+      #     id                int        The unique ID of the test case
+      #  *  milestone_id      int        The ID of the milestone that is linked to the test case
+      #  *  priority_id       int        The ID of the priority that is linked to the test case
+      #  *  refs              string     A comma-separated list of references/requirements
+      #     section_id        int        The ID of the section the test case belongs to
+      #     suite_id          int        The ID of the suite the test case belongs to
+      #  *  title             string     The title of the test case
+      #  *  type_id           int        The ID of the test case type that is linked to the test case
+      #     updated_by        int        The ID of the user who last updated the test case
+      #     updated_on        timestamp  The date/time when the test case was last updated (as UNIX timestamp)
+      fields = {'estimate'      => '3m14s',
+                'milestone_id'  => 1      ,
+                'priority_id'   => 5      ,
+                'refs'          => ''     ,
+                'title'         => title  ,
+                'type_id'       => 6      }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      item = connection.create(fields)
+      return [item, item['title']]
+
+  when 'testrun'
+      # TestRun system fields (* = system fields supported on POST):
+      #  *  assignedto_id   int        The ID of the user the entire test run is assigned to
+      #     blocked_count   int        The amount of tests in the test run marked as blocked
+      #  *  case_ids        array      An array of case IDs for the custom case selection ????
+      #     completed_on    timestamp  The date/time when the test run was closed (as UNIX timestamp)
+      #     config          string     The configuration of the test run as string (if part of a test plan)
+      #     config_ids      array      The array of IDs of the configurations of the test run (if part of a test plan)
+      #     created_by      int        The ID of the user who created the test run
+      #     created_on      timestamp  The date/time when the test run was created (as UNIX timestamp)
+      #     custom_status?  int        The amount of tests in the test run with the respective custom status
+      #         _count          ????
+      #  *  description     string     The description of the test run
+      #     failed_count    int        The amount of tests in the test run marked as failed
+      #     id              int        The unique ID of the test run
+      #  *  include_all     bool       True if the test run includes all test cases and false otherwise
+      #     is_completed    bool       True if the test run was closed and false otherwise
+      #  *  milestone_id    int        The ID of the milestone this test run belongs to
+      #     plan_id         int        The ID of the test plan this test run belongs to
+      #  *  name            string     The name of the test run
+      #     passed_count    int        The amount of tests in the test run marked as passed
+      #     project_id      int        The ID of the project this test run belongs to
+      #     retest_count    int        The amount of tests in the test run marked as retest
+      #  *  suite_id        int        The ID of the test suite this test run is derived from
+      #     untested_count  int        The amount of tests in the test run marked as untested
+      #     url             string     The address/URL of the test run in the user interface
+      fields = {'assignedto_id' => 1                      ,
+                'case_ids'      => [2]                    ,
+                'description'   => 'desc'                 ,
+                'include_all'   => false                  ,
+                'suite_id'      => 1                      ,
+                'milestone_id'  => 1                      ,
+                'name'          => 'Test run - ' + title  }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      item = connection.create(fields)
+      return [item, item['id']]
+
+    when 'testresult'
+      # TestResult system fields (* = system fields supported on POST):
+      #  *  assignedto_id  int The ID of the assignee (user) of the test result
+      #  *  comment        string  The comment or error message of the test result
+      #     created_by     int The ID of the user who created the test result
+      #     created_on     timestamp The date/time when the test result was created (as UNIX timestamp)
+      #  *  defects        string  A comma-separated list of defects linked to the test result
+      #  *  elapsed        timespan  The amount of time it took to execute the test (e.g. "1m" or "2m 30s")
+      #     id             int The unique ID of the test result
+      #  *  status_id      int The status of the test result, e.g. passed or failed, also see get_statuses
+      #                       1=Passed, 2=Blocked, 3=Untested, 4=Retest, 5=Failed
+      #     test_id        int The ID of the test this test result belongs to
+      #  *  version        string  The (build) version the test was executed against
+      #
+      # Required in a 'GET' url:
+      #     get_results:            :test_id
+      #     get_results_for_case:   :run_id,  :case_id
+      #     get_results_for_run:    :run_id
+      #
+      # Require in a 'POST' url:
+      #     add_result:             :test_id
+      #     add_result_for_case:    :run_id,  :case_id
+      #     add_results:            :run_id
+      #     add_results_for_cases:  :run_id
+      fields = {'assignedto_id' => 1,
+                'comment'       => 'This test failed'   ,
+                'defects'       => 'TR-7'               ,
+                'elapsed'       => '15s'                ,
+                'status_id'     => 5                    ,
+                'version'       => '1.0 RC1 build 3724' }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      item = connection.create(fields)
+      return [item, item['id']]
     else
-      raise UnrecoverableException.new("Unrecognize value for TR_ARTIFACT_TYPE ('#{TestConfig::TR_ARTIFACT_TYPE.downcase}')", self)
+      raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{connection.artifact_type}'", self)
     end
 
-    if !extra_fields.nil?
-      fields.merge!(extra_fields)
-    end
-    item = connection.create(fields)
-    return [item, fields['title']]
+    return nil  
+
   end
   
 end
