@@ -164,7 +164,7 @@ module TestRailSpecHelper
                 'type_id'       => 6      }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
-      return [item, fields['title']]
+      return [item, item['title']]
 
   when 'testrun'
       # TestRun system fields (* = system fields supported on POST):
@@ -192,24 +192,18 @@ module TestRailSpecHelper
       #  *  suite_id        int        The ID of the test suite this test run is derived from
       #     untested_count  int        The amount of tests in the test run marked as untested
       #     url             string     The address/URL of the test run in the user interface
-      fields = {'assignedto_id' => 1,
-                'case_ids'      => [2],
-                'description'   => 'desc',
-                'include_all'   => false,
-                'suite_id'      => 1,
-                'milestone_id'  => 1,
-                'name'          => 'Test run - ' + title}
+      fields = {'assignedto_id' => 1                      ,
+                'case_ids'      => [2]                    ,
+                'description'   => 'desc'                 ,
+                'include_all'   => false                  ,
+                'suite_id'      => 1                      ,
+                'milestone_id'  => 1                      ,
+                'name'          => 'Test run - ' + title  }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
       return [item, item['id']]
 
     when 'testresult'
-      # status_id:  1 Passed
-      #             2 Blocked
-      #             3 Untested
-      #             4 Retest
-      #             5 Failed
-      # 
       # TestResult system fields (* = system fields supported on POST):
       #  *  assignedto_id  int The ID of the assignee (user) of the test result
       #  *  comment        string  The comment or error message of the test result
@@ -219,23 +213,26 @@ module TestRailSpecHelper
       #  *  elapsed        timespan  The amount of time it took to execute the test (e.g. "1m" or "2m 30s")
       #     id             int The unique ID of the test result
       #  *  status_id      int The status of the test result, e.g. passed or failed, also see get_statuses
+      #                       1=Passed, 2=Blocked, 3=Untested, 4=Retest, 5=Failed
       #     test_id        int The ID of the test this test result belongs to
       #  *  version        string  The (build) version the test was executed against
+      #
       # Required in a 'GET' url:
       #     get_results:            :test_id
       #     get_results_for_case:   :run_id,  :case_id
       #     get_results_for_run:    :run_id
+      #
       # Require in a 'POST' url:
       #     add_result:             :test_id
       #     add_result_for_case:    :run_id,  :case_id
       #     add_results:            :run_id
       #     add_results_for_cases:  :run_id
       fields = {'assignedto_id' => 1,
-                'comment'   => 'This test failed'   ,
-                'defects'   => 'TR-7'               ,
-                'elapsed'   => '15s'                ,
-                'status_id' => 5                    ,
-                'version'   => '1.0 RC1 build 3724' }
+                'comment'       => 'This test failed'   ,
+                'defects'       => 'TR-7'               ,
+                'elapsed'       => '15s'                ,
+                'status_id'     => 5                    ,
+                'version'       => '1.0 RC1 build 3724' }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
       return [item, item['id']]

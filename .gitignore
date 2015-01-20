@@ -3,7 +3,7 @@
 .project
 Gemfile.lock
 LOCK.tmp
-configs/test*
+configs/Test*
 configs/Encoded-*
 configs/*time.file
 coverage/

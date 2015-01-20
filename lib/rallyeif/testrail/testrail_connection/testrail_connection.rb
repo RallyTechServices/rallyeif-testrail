@@ -144,6 +144,9 @@ module RallyEIF
             @tr_cust_fields_tc[item['system_name']] =  [item['name'],  item['label'],  item['type_id'],  pids]
           end
           
+        when 'testrun'
+          # No way to get fields.
+          
         when 'testresult'
           begin   
             cust_fields = @testrail.send_get('get_result_fields')
@@ -167,9 +170,6 @@ module RallyEIF
             @tr_cust_fields_tcr[item['system_name']] = [item['name'],  item['label'],  item['type_id'], pids]
           end
           
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        
         else
           RallyLogger.error(self, "Unrecognize value for <ArtifactType> '#{@artifact_type}'")
         end
@@ -179,6 +179,7 @@ module RallyEIF
         # STANDARD FIELDS:  Build hash of TestCase standard fields
         #                   (done manually since there is no API method to get them).
         case @artifact_type.to_s
+
         when 'testcase'    # Field-name          Type (1=String, 2=Integer)
           @tr_fields_tc = { 'created_by'        => 2,
                             'created_on'        => 2,
@@ -194,6 +195,10 @@ module RallyEIF
                             'type_id'           => 2,
                             'updated_by'        => 2,
                             'updated_on'        => 2}
+
+        when 'testrun'
+          # No way to get fields.
+          
         when 'testresult' #  Field-name          Type (1=String, 2=Integer)
           @tr_fields_tcr = {'assignedto_id'     => 2,
                             'comment'           => 1,
@@ -206,9 +211,6 @@ module RallyEIF
                             'test_id '          => 2,
                             'version'           => 1}
 
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        
         else
           RallyLogger.error(self, "Unrecognize value for <ArtifactType> '#{@artifact_type}'")
         end
@@ -238,6 +240,7 @@ module RallyEIF
           when 'testcase'
             new_item = @testrail.send_post("add_case/#{section_id}", int_work_item)
             gui_id = 'C' + new_item['id'].to_s # How it appears in the GUI
+            RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
           when 'testrun'
             new_item = @testrail.send_post("add_run/#{@tr_project['id']}", int_work_item)
           when 'testresult'
@@ -247,6 +250,10 @@ module RallyEIF
             raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
           end
         rescue RuntimeError => ex
+          RallyLogger.debug(self,"Hep me Hep me 1!!!")
+          raise RecoverableException.copy(ex, self)
+        rescue Exception => ex
+          RallyLogger.debug(self,"Hep me Hep me 2!!!")
           raise RecoverableException.copy(ex, self)
         end
         RallyLogger.debug(self,"Created #{@artifact_type} #{gui_id}")
@@ -283,6 +290,10 @@ module RallyEIF
               return false
             end
           end
+          
+        when 'testrun'
+          raise UnrecoverableException.new('Unrecognize logic: field_exists? on "testrun"?', self)
+          
         when 'testresult'
           if (!@tr_cust_fields_tcr.member? field_name.to_s.downcase) && (!@tr_fields_tcr.member? field_name.to_s.downcase)
             if (!@tr_cust_fields_tcr.member? 'custom_' + field_name.to_s.downcase)
@@ -292,8 +303,7 @@ module RallyEIF
               return false
             end
           end
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -305,6 +315,13 @@ module RallyEIF
         case @artifact_type.to_s.downcase
         when 'testcase'
           found_item = @testrail.send_get("get_case/#{item['id']}")
+          
+        when 'testrun'
+          raise UnrecoverableException.new('Unimplemented logic: find on "testrun"...', self)
+        
+        when 'testresult'
+          raise UnrecoverableException.new('Unimplemented logic: find on "testresult"...', self)
+        
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -316,17 +333,20 @@ module RallyEIF
         case @artifact_type.to_s
         when 'testcase'
           begin
-          
+
 # ToDo: Add  milestone, section, etc
-          
+
             artifact_array = @testrail.send_get("get_cases/#{@tr_project['id']}")
           rescue
             raise UnrecoverableException.new("Failed to find testcase objects with populated <ExternalID> field.\n TestRail api returned:#{ex.message}", self)
           end 
-        when 'other-value-1'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          
+        when 'testrun'
+          raise UnrecoverableException.new('Unimplemented logic: find_by_external_id on "testrun"...', self)
+
+        when 'testresult'
+          raise UnrecoverableException.new('Unimplemented logic: find_by_external_id on "testresult"...', self)
+
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -362,9 +382,14 @@ module RallyEIF
           begin
 # ToDo: Add milestone, section, etc
             returned_artifacts = @testrail.send_get("get_cases/#{@tr_project['id']}")
+            # matching candidates are filtered below...
           rescue Exception => ex
             raise UnrecoverableException.new("Failed to find new testcases.\n TestRail api returned:#{ex.message}", self)
           end
+        
+        when 'testrun'
+          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
+        
         when 'testresult'
           begin
 # ToDo: Add milestone, section, etc
@@ -372,11 +397,11 @@ module RallyEIF
             run_id = 1
             case_id = 2
             returned_artifacts = @testrail.send_get("get_results_for_case/#{run_id}/#{case_id}")
+            # matching candidates are filtered below...
           rescue Exception => ex
             raise UnrecoverableException.new("Failed to find new Test Results.\n TestRail api returned:#{ex.message}", self)
           end
-        when 'testrun'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -402,14 +427,24 @@ module RallyEIF
         case @artifact_type.to_s
         when 'testcase'
           begin
-            artifact_array = @testrail.send_get("get_cases/#{@tr_project['id']}&updated_after=#{unix_time}")
+            result_array = @testrail.send_get("get_cases/#{@tr_project['id']}&updated_after=#{unix_time}")
+            # throw away those without extid
+            artifact_array = []
+            result_array.each do |item|
+              if item["custom_#{@external_id_field.downcase}"] != nil
+                artifact_array.push(item)
+              end
+            end
           rescue Exception => ex
             raise UnrecoverableException.new("Failed to find new testcases.\n TestRail api returned:#{ex.message}", self)
           end
-        when 'other-value-1'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        when 'other-value-2'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+        
+        when 'testrun'
+          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
+            
+        when 'testresult'
+          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
+
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
@@ -445,12 +480,15 @@ module RallyEIF
           all_fields = artifact
           all_fields.merge!(new_fields)
           updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
+
         when 'testrun'
           all_fields = artifact
           all_fields.merge!(new_fields)
           updated_item = @testrail.send_post("update_run/#{artifact['id']}", all_fields)
-        when 'result'
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+
+        when 'testresult'
+          raise UnrecoverableException.new('Unimplemented logic: update_internal on "testresult"...', self)
+
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
