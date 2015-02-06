@@ -129,6 +129,8 @@ module TestRailSpecHelper
     return connection
   end
   
+
+  
   # Creates a TestRail Artifact
   # @arg1 connection - TestRail connection packet
   # @arg2 extra_fields (optional) to be added to new object
@@ -156,8 +158,9 @@ module TestRailSpecHelper
       #  *  type_id           int        The ID of the test case type that is linked to the test case
       #     updated_by        int        The ID of the user who last updated the test case
       #     updated_on        timestamp  The date/time when the test case was last updated (as UNIX timestamp)
+      
       fields = {'estimate'      => '3m14s',
-                'milestone_id'  => 1      ,
+                #'milestone_id'  => 2      ,
                 'priority_id'   => 5      ,
                 'refs'          => ''     ,
                 'title'         => title  ,
@@ -197,7 +200,7 @@ module TestRailSpecHelper
                 'description'   => 'desc'                 ,
                 'include_all'   => false                  ,
                 'suite_id'      => 1                      ,
-                'milestone_id'  => 1                      ,
+                #'milestone_id'  => 1                      ,
                 'name'          => 'Test run - ' + title  }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
@@ -234,6 +237,7 @@ module TestRailSpecHelper
                 'status_id'     => 5                    ,
                 'version'       => '1.0 RC1 build 3724' }
       fields.merge!(extra_fields) if !extra_fields.nil?
+      
       item = connection.create(fields)
       return [item, item['id']]
     else

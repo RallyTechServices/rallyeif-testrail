@@ -15,8 +15,8 @@ module RallyEIF
                           
     class TestRailConnection < Connection
 
-      attr_reader   :testrail
-      attr_accessor :project
+      attr_reader   :testrail, :tr_project
+      attr_accessor :project, :section_id
       
       #
       # Global info that will be obtained from the TestRail system.
@@ -38,6 +38,7 @@ module RallyEIF
         super(config)
         @url     = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
         @project = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
+        @section_id = nil
       end
       
       def name()
@@ -100,7 +101,7 @@ module RallyEIF
         end
         @tr_project = found_projects[0].to_hash
         
-        
+        @section_id = get_default_section_id()['id']
         #
         # CUSTOM FIELDS:  Build a hash of custom fields for the given <Artifactype>.
         # Each entry:  {'system_name' => ['name', 'label', 'type_id', [ProjIDs]}
@@ -189,7 +190,7 @@ module RallyEIF
                             'milestone_id'      => 2,
                             'priority_id'       => 2,
                             'refs'              => 1,
-                            'section_id'        => 2,
+                            'section_id'        => @section_id,
                             'suite_id'          => 2,
                             'title'             => 1,
                             'type_id'           => 2,
@@ -228,22 +229,34 @@ module RallyEIF
         
         return @testrail
       end
+      
+      def get_default_section_id()
+        begin
+          returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
+        rescue Exception => ex
+          RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
+        end
+        
+        RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
+        return returned_artifacts.first
+      end
 #---------------------#
       def create_internal(int_work_item)
         # Hardcode these until we understand more...
-        section_id = 1
         run_id     = 1
         case_id    = 2
-        RallyLogger.debug(self,"Preparing to create a TestRail: '#{@artifact_type}' in Section #{section_id}")
+        RallyLogger.debug(self,"Preparing to create a TestRail: '#{@artifact_type}' in Section #{@section_id}")
         begin
           case @artifact_type.to_s.downcase
           when 'testcase'
-            new_item = @testrail.send_post("add_case/#{section_id}", int_work_item)
+            new_item = @testrail.send_post("add_case/#{@section_id}", int_work_item)
             gui_id = 'C' + new_item['id'].to_s # How it appears in the GUI
             RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
           when 'testrun'
             new_item = @testrail.send_post("add_run/#{@tr_project['id']}", int_work_item)
           when 'testresult'
+            run_id = int_work_item['run_id'] || run_id
+            case_id = int_work_item['case_id'] || case_id
             new_item = @testrail.send_post("add_result_for_case/#{run_id}/#{case_id}", int_work_item)
             gui_id = '(no ID)'
           else
@@ -311,11 +324,14 @@ module RallyEIF
         return true
       end
 #---------------------#
-      def find(item)
-        case @artifact_type.to_s.downcase
+      def find(item, type=@artifact_type)
+        case type.to_s.downcase
         when 'testcase'
           found_item = @testrail.send_get("get_case/#{item['id']}")
-          
+        
+        when 'test'
+          found_item = @testrail.send_get("get_test/#{item['id']}")
+                    
         when 'testrun'
           raise UnrecoverableException.new('Unimplemented logic: find on "testrun"...', self)
         
@@ -323,7 +339,7 @@ module RallyEIF
           raise UnrecoverableException.new('Unimplemented logic: find on "testresult"...', self)
         
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{type}'", self)
         end
         return found_item
       end
@@ -382,7 +398,7 @@ module RallyEIF
           begin
 # ToDo: Add milestone, section, etc
             returned_artifacts = @testrail.send_get("get_cases/#{@tr_project['id']}")
-            # matching candidates are filtered below...
+            matching_artifacts = filter_out_already_connected(returned_artifacts)
           rescue Exception => ex
             raise UnrecoverableException.new("Failed to find new testcases.\n TestRail api returned:#{ex.message}", self)
           end
@@ -391,34 +407,74 @@ module RallyEIF
           raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
         
         when 'testresult'
-          begin
-# ToDo: Add milestone, section, etc
-            # get_results_for_case/:run_id/:case_id
-            run_id = 1
-            case_id = 2
-            returned_artifacts = @testrail.send_get("get_results_for_case/#{run_id}/#{case_id}")
-            # matching candidates are filtered below...
-          rescue Exception => ex
-            raise UnrecoverableException.new("Failed to find new Test Results.\n TestRail api returned:#{ex.message}", self)
-          end
-
+          matching_artifacts = find_test_results()
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
         end
 
-        #
-        # Find only the new artifacts
-        #
-        matching_artifacts = []
-        returned_artifacts.each do |artifact|
-          if artifact["custom_#{@external_id_field.downcase}"].nil?
-            matching_artifacts.push(artifact)
-          end
-        end
         RallyLogger.info(self, "Found '#{matching_artifacts.length}' new TestRail '#{@artifact_type}' objects")
         
         return matching_artifacts
       end
+      
+      def filter_out_already_connected(artifacts)
+        #
+        # Find only the new artifacts
+        #
+        matching_artifacts = []
+        artifacts.each do |artifact|
+          if artifact["custom_#{@external_id_field.downcase}"].nil?
+            matching_artifacts.push(artifact)
+          end
+        end
+        return matching_artifacts
+      end
+      
+      def find_runs()
+        begin
+          runs = @testrail.send_get("get_runs/#{@tr_project['id']}")
+        rescue Exception => ex
+          raise UnrecoverableException.new("Failed to find any Test Runs.\n TestRail api returned:#{ex.message}", self)
+        end
+  
+        return runs
+      end
+      
+      def find_test_results()
+        # have to iterate over the runs
+        runs = find_runs()
+        test_results = []
+        runs.each do |run|
+          begin
+            run_id = run['id']
+            results = @testrail.send_get("get_results_for_run/#{run_id}")
+            filtered_results = filter_out_already_connected(results)
+            test_results = test_results.concat(filtered_results)
+            # matching candidates are filtered below...
+          rescue Exception => ex
+            raise UnrecoverableException.new("Failed to find new Test Results.\n TestRail api returned:#{ex.message}", self)
+          end
+        end
+        
+        # pack test result with referenced test and test case
+        RallyLogger.debug(self,"Unfiltered test case result set count:  #{test_results.length}")
+        RallyLogger.debug(self,"Filtering out test case results that have an unconnected test case")
+        
+        filtered_test_results = []
+        test_results.each do |test_result|
+          test = find({ 'id' => test_result['test_id'] }, 'test')
+          test_result['test'] = test
+          test_case = find({ 'id' => test['case_id'] }, 'testcase')
+          test_result['testcase'] = test_case
+          # we only care about results where the test_case is also connected to Rally
+          if !test_case["custom_#{@external_id_field.downcase}"].nil?
+            filtered_test_results.push(test_result)
+          end
+        end
+        
+        return filtered_test_results
+      end
+     
 #---------------------#
       def find_updates(reference_time)
         RallyLogger.info(self, "Find updated TestRail '#{@artifact_type}' objects since '#{reference_time}'")
