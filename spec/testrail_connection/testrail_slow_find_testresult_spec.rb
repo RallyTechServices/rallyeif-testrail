@@ -36,9 +36,9 @@ describe "When trying to find TestRail test case results" do
   end
   
   after(:each) do    
-    @items_to_remove_testresult.each { |item| @connection_testresult.delete(item) }
-    @items_to_remove_testrun.each    { |item| @connection_testrun.delete(item)    }
-    @items_to_remove_testcase.each   { |item| @connection_testcase.delete(item)   }
+     @items_to_remove_testresult.each { |item| @connection_testresult.delete(item) }
+     @items_to_remove_testrun.each    { |item| @connection_testrun.delete(item)    }
+     @items_to_remove_testcase.each   { |item| @connection_testcase.delete(item)   }
 
     @connection_testresult.disconnect()
     @connection_testrun.disconnect()
@@ -60,7 +60,7 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase.push(item_testcase)
       
     # 3 - Create a Run
-    item_testrun,run_id = create_testrail_artifact(@connection_testrun)
+    item_testrun,run_id = create_testrail_artifact(@connection_testrun, { "include_all" => true })
     @connection_testrun.update_external_id_fields(item_testrun, @unique_number , nil, nil)
     @items_to_remove_testrun.push(item_testrun)
     
@@ -73,7 +73,7 @@ describe "When trying to find TestRail test case results" do
     all_items_after = @connection_testresult.find_new()
     
     # 6 - Second find should have more...
-    expect(all_items_before.length).to be < (all_items_after.length)
+    expect(all_items_after.length).to eq(all_items_before.length + 1)
   end
 
    
@@ -87,7 +87,7 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase.push(item_testcase)
    
     # 3 - Create a TestRun.
-    item_testrun,run_id = create_testrail_artifact(@connection_testrun)
+    item_testrun,run_id = create_testrail_artifact(@connection_testrun, { "include_all" => true })
     @connection_testrun.update_external_id_fields(item_testrun, @unique_number , nil, nil)
     @items_to_remove_testrun.push(item_testrun)
     
@@ -98,9 +98,9 @@ describe "When trying to find TestRail test case results" do
     
     # 5 - Find all 'new' TestResults again.
     all_items_after = @connection_testresult.find_new()
-    
+
     # 6 - Second find should have more...
-    expect(all_items_before.length).to eq(all_items_after.length)
+    expect(all_items_after.length).to eq(all_items_before.length)
   end
 
 end

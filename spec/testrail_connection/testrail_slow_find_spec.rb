@@ -29,7 +29,7 @@ describe "When trying to find TestRail items" do
    
     #3 find all 'new' items again
     all_items_after = @connection.find_new()
-    
+
     #4 second find should have more...
     expect(all_items_before.length).to be < (all_items_after.length)
   end
