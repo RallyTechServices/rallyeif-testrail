@@ -64,5 +64,18 @@ describe "Given configuration in the TestRail section" do
     expect(connection.external_item_link_field).to be(nil)
     expect(connection.id_field).to be(nil)
   end
+  
+  it "should validate special fields" do
+    config_testresult = YetiTestUtils::modify_config_data(
+      TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
+      "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
+      "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
+      'TestResult',                               #4 VALUE   - New value to put into NEWTAG
+      "replace",                                  #5 ACTION  - [before, after, replace, delete]
+      "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
+    connection_testresult = testrail_connect(config_testresult)
+    expect( connection_testresult.field_exists?(:_testcase) ).to eq(true)
+
+  end
    
 end
