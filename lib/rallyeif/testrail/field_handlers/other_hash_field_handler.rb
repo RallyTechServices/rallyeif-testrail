@@ -3,7 +3,7 @@
 #   When a field is passed as a hash, we will want to pull out a single field item
 #   Imagine we have a hash in a field called _testcase = { 'id' => "1", 'name' => "fred" }
 #
-#   We can get "1" but using this config:
+#   We can get "1" by using this config:
 #   <OtherHashFieldHandler>
 #     <FieldName>_testcase</FieldName>
 #     <ReferencedFieldLookupID>id</ReferencedFieldLookupID>  <!-- the field inside the hash -->
