@@ -1,6 +1,7 @@
 .buildpath
 .idea/
 .project
+Gemfile
 Gemfile.lock
 LOCK.tmp
 MyVars.rb
