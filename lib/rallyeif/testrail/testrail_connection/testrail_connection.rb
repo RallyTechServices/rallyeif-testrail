@@ -516,7 +516,7 @@ module RallyEIF
         if !@external_end_user_id_field.nil?
           sys_name = 'custom_' + @external_end_user_id_field.to_s.downcase
           new_fields[sys_name] = end_user_id
-          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{@end_user_id}'")
+          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{end_user_id}'")
         end
         
         updated_item = update_internal(artifact, new_fields)
