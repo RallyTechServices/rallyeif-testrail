@@ -5,7 +5,6 @@ Gemfile
 Gemfile.lock
 LOCK.tmp
 MyVars.rb
-configs/Test*
 configs/Encoded-*
 configs/*time.file
 coverage/
