@@ -3,7 +3,7 @@
 <!ENTITY Encoded-Credentials-Rally    SYSTEM "configs/Encoded-Credentials-Rally.xml">
 <!ENTITY Encoded-Credentials-TestRail SYSTEM "configs/Encoded-Credentials-TestRail.xml">
 ]>
-<!-- =====  test03.xml  ===== -->
+<!-- =====  test01.xml  ===== -->
 <config>
     <RallyConnection>
 <!--    <Url>rally1.rallydev.com</Url>
@@ -40,6 +40,6 @@
     <ConnectorRunner>
         <LogLevel>Debug</LogLevel>
         <Preview>true</Preview>
-        <Services>COPY_RALLY_TO_TESTRAIL</Services>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
     </ConnectorRunner>
 </config>

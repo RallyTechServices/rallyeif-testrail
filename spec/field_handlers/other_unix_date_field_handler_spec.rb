@@ -50,15 +50,15 @@ describe 'Unix Date Field Handler Tests' do
     expect { fh.transform_in("") }.to raise_error(/Not Implemented/)
   end
 
-  it "should correctly transform_out if there is a value to transform" do
-      
+  it "should correctly transform_out if there is a value to transform" do      
     item = {'dc:title' => 'test title', mapped_field_name => 1423275760 }
 
     root = YetiTestUtils::load_xml(fieldhandler_config).root
     fh = RallyEIF::WRK::FieldHandlers::OtherUnixDateFieldHandler.new
     fh.connection = @connection
     fh.read_config(root)
-    expect( fh.transform_out(item) ).to eq("2015-02-06T18:22:40Z")
+    #expect( fh.transform_out(item) ).to eq("2015-02-06T18:22:40Z")
+    expect( fh.transform_out(item) ).to eq("2015-02-07T02:22:40Z")
   end
   
 end

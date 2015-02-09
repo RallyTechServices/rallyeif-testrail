@@ -2,23 +2,23 @@
 <config>
     <RallyConnection>
         <Url>rally1.rallydev.com</Url>
-        <WorkspaceName>My WS</WorkspaceName>
+        <WorkspaceName>My-WS</WorkspaceName>
         <Projects>
-            <Project>My Project</Project>
+            <Project>My-Project</Project>
         </Projects>
         <User>person@place.com</User>
         <Password>secret</Password>
-        <ArtifactType>Defect</ArtifactType>
-        <ExternalIDField>ExternalID</ExternalIDField>
+        <ArtifactType>TestCase</ArtifactType>
+        <ExternalIDField>some-custom-field</ExternalIDField>
     </RallyConnection>
 
     <TestRailConnection>
-        <Url></Url>
-        <User></User>
-        <Password></Password>
-        <ExternalIDField></ExternalIDField>
-        <ArtifactType></ArtifactType>
-        <Project></Project>
+        <Url>your.testrail.com</Url>
+        <Project>My-Project</Project>
+        <User>person@place.com</User>
+        <Password>secret</Password>
+        <ExternalIDField>some-custom-field</ExternalIDField>
+        <ArtifactType>TestCase</ArtifactType>
     </TestRailConnection>
 
     <Connector>
