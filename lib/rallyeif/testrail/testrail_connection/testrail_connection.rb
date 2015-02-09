@@ -432,7 +432,7 @@ module RallyEIF
         return matching_artifacts
       end
       
-      def find_runs()
+      def find_test_runs()
         begin
           runs = @testrail.send_get("get_runs/#{@tr_project['id']}")
         rescue Exception => ex
@@ -442,9 +442,41 @@ module RallyEIF
         return runs
       end
       
+
+      # find and populated related data for plans
+      def find_test_plans()
+        begin
+          plan_shells = @testrail.send_get("get_plans/#{@tr_project['id']}")
+          plans = []
+          plan_shells.each do |plan_shell|
+            plan = @testrail.send_get("get_plan/#{plan_shell['id']}")
+            runs = []
+            tests = []
+              
+            entries = plan['entries'] || []
+            entries.each do |entry|
+              run_shells = entry['runs']
+              run_shells.each do |run_shell|
+                run = @testrail.send_get("get_run/#{run_shell['id']}")
+                runs.push(run)
+                test = @testrail.send_get("get_tests/#{run_shell['id']}")
+                tests.push(test)
+              end
+            end
+            plan['runs'] = runs
+            plan['tests'] = tests
+            plans.push(plan)
+          end
+        rescue Exception => ex
+          raise UnrecoverableException.new("Failed to find any Test Plans.\n TestRail api returned:#{ex.message}", self)
+        end
+      
+        return plans
+      end
+
       def find_test_results()
         # have to iterate over the runs
-        runs = find_runs()
+        runs = find_test_runs()
         test_results = []
         runs.each do |run|
           begin
