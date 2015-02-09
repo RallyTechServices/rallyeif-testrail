@@ -308,8 +308,10 @@ module RallyEIF
           raise UnrecoverableException.new('Unrecognize logic: field_exists? on "testrun"?', self)
           
         when 'testresult'
+          
+          special_fields = ['_testcase','_test']
           if (!@tr_cust_fields_tcr.member? field_name.to_s.downcase) && (!@tr_fields_tcr.member? field_name.to_s.downcase)
-            if (!@tr_cust_fields_tcr.member? 'custom_' + field_name.to_s.downcase)
+            if (!@tr_cust_fields_tcr.member? 'custom_' + field_name.to_s.downcase )  && ( !special_fields.member? field_name.to_s.downcase )
               RallyLogger.error(self, "TestRail field '#{field_name.to_s}' not a valid field name for Test Results in project '#{@project}'")
               RallyLogger.debug(self, "  available fields (standard): #{@tr_fields_tcr}")
               RallyLogger.debug(self, "  available fields (custom): #{@tr_cust_fields_tcr}")
@@ -409,7 +411,7 @@ module RallyEIF
         when 'testresult'
           matching_artifacts = find_test_results()
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}'", self)
         end
 
         RallyLogger.info(self, "Found '#{matching_artifacts.length}' new TestRail '#{@artifact_type}' objects")
@@ -430,7 +432,7 @@ module RallyEIF
         return matching_artifacts
       end
       
-      def find_runs()
+      def find_test_runs()
         begin
           runs = @testrail.send_get("get_runs/#{@tr_project['id']}")
         rescue Exception => ex
@@ -440,9 +442,41 @@ module RallyEIF
         return runs
       end
       
+
+      # find and populated related data for plans
+      def find_test_plans()
+        begin
+          plan_shells = @testrail.send_get("get_plans/#{@tr_project['id']}")
+          plans = []
+          plan_shells.each do |plan_shell|
+            plan = @testrail.send_get("get_plan/#{plan_shell['id']}")
+            runs = []
+            tests = []
+              
+            entries = plan['entries'] || []
+            entries.each do |entry|
+              run_shells = entry['runs']
+              run_shells.each do |run_shell|
+                run = @testrail.send_get("get_run/#{run_shell['id']}")
+                runs.push(run)
+                test = @testrail.send_get("get_tests/#{run_shell['id']}")
+                tests.push(test)
+              end
+            end
+            plan['runs'] = runs
+            plan['tests'] = tests
+            plans.push(plan)
+          end
+        rescue Exception => ex
+          raise UnrecoverableException.new("Failed to find any Test Plans.\n TestRail api returned:#{ex.message}", self)
+        end
+      
+        return plans
+      end
+
       def find_test_results()
         # have to iterate over the runs
-        runs = find_runs()
+        runs = find_test_runs()
         test_results = []
         runs.each do |run|
           begin
@@ -463,9 +497,9 @@ module RallyEIF
         filtered_test_results = []
         test_results.each do |test_result|
           test = find({ 'id' => test_result['test_id'] }, 'test')
-          test_result['test'] = test
+          test_result['_test'] = test
           test_case = find({ 'id' => test['case_id'] }, 'testcase')
-          test_result['testcase'] = test_case
+          test_result['_testcase'] = test_case
           # we only care about results where the test_case is also connected to Rally
           if !test_case["custom_#{@external_id_field.downcase}"].nil?
             filtered_test_results.push(test_result)
@@ -496,10 +530,10 @@ module RallyEIF
           end
         
         when 'testrun'
-          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
+          raise UnrecoverableException.new('Not available for "testrun": find_updates..', self)
             
         when 'testresult'
-          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
+          raise UnrecoverableException.new('Not available for "testresult": find_updates...', self)
 
         else
           raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
@@ -552,6 +586,10 @@ module RallyEIF
       end
 #---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
+        if @artifact_type.to_s.downcase == "testresult"
+          return artifact
+        end
+        
         new_fields = {}
         if !external_id.nil?
           sys_name = 'custom_' + @external_id_field.to_s.downcase

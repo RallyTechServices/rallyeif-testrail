@@ -103,4 +103,14 @@ describe "When trying to find TestRail test case results" do
     expect(all_items_after.length).to eq(all_items_before.length)
   end
 
+  it "(3), should raise an exception when trying to find update on a test result (only do new) " do
+    # we want to only do updates because we cannot set the external ID on a test result
+    
+    # 1 - Find all 'new' Results
+    time = (Time.now() - 600).utc
+
+    expect{ @connection_testresult.find_updates(time) }.to raise_error(/Not available for "testresult"/)
+    
+  end
+  
 end
