@@ -17,6 +17,7 @@ module RallyEIF
 
       attr_reader   :testrail, :tr_project
       attr_accessor :project, :section_id
+      attr_reader   :rally_story_field_for_plan_id
       
       #
       # Global info that will be obtained from the TestRail system.
@@ -38,6 +39,9 @@ module RallyEIF
         super(config)
         @url     = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
         @project = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
+        # yes, it's weird to put a field name from a Rally artifact into the other connection
+        # but this keeps us from overriding/monkey-patching the Rally connection class
+        @rally_story_field_for_plan_id = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RallyStoryFieldForPlanID", false)
         @section_id = nil
       end
       

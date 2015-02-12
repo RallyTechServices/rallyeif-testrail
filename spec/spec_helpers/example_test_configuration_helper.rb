@@ -65,5 +65,10 @@ module TestConfig
 
   TR_ARTIFACT_TYPE        = "TestCase"          #
   TR_ID_FIELD             = "id"                # type = Integer
+  
+  # a field on a Rally STORY that will hold the Id of a TestRail Test Plan so we can associate
+  # the test case(s) with a story
+  TR_RALLY_FIELD_TO_HOLD_PLAN_ID  = ""
+  
 
 end

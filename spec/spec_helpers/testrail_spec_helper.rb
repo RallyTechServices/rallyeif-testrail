@@ -1,4 +1,4 @@
-# Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
+# Copyright 2001-2015 Rally Software Development Corp. All Rights Reserved.
 require File.dirname(__FILE__) + '/spec_helper'
 if !File.exist?(File.dirname(__FILE__) + '/test_configuration_helper.rb')
   puts
@@ -35,6 +35,19 @@ module TestRailSpecHelper
       </TestRailConnection>
     </config>"
 
+  TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG = "
+    <config>
+      <TestRailConnection>
+        <Url>#{TestConfig::TR_URL}</Url>
+        <User>#{TestConfig::TR_USER}</User>
+        <Password>#{TestConfig::TR_PASSWORD}</Password>
+        <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
+        <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
+        <Project>#{TestConfig::TR_PROJECT}</Project>
+        <RallyStoryFieldForPlanID>#{TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID}</RallyStoryFieldForPlanID>
+      </TestRailConnection>
+    </config>"
+  
   TESTRAIL_MISSING_ARTIFACT_CONFIG = "
     <config>
       <TestRailConnection>
