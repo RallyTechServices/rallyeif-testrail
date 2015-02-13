@@ -176,13 +176,13 @@ module TestRailSpecHelper
                 #'milestone_id'  => 2      ,
                 'priority_id'   => 5      ,
                 'refs'          => ''     ,
-                'title'         => title  ,
+                'title'         => "Auto Test Case - #{title}"  ,
                 'type_id'       => 6      }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
       return [item, item['title']]
 
-  when 'testrun'
+    when 'testrun'
       # TestRun system fields (* = system fields supported on POST):
       #  *  assignedto_id   int        The ID of the user the entire test run is assigned to
       #     blocked_count   int        The amount of tests in the test run marked as blocked
@@ -253,8 +253,17 @@ module TestRailSpecHelper
       
       item = connection.create(fields)
       return [item, item['id']]
+    when 'testplan'
+      
+      fields = {
+        'name'          => 'Test Plan - ' + title
+      }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      
+      item = connection.create(fields)
+      return [item, item['id']]
     else
-      raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{connection.artifact_type}'", self)
+      raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{connection.artifact_type}'", self)
     end
 
     return nil  
