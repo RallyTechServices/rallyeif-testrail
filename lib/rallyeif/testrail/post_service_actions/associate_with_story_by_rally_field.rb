@@ -10,16 +10,16 @@ module RallyEIF
         def setup(action_config, rally_conn, other_conn)
           super(action_config, rally_conn, other_conn)
           if other_conn.artifact_type != :testcase
-            msg = "AssociateWithStoryByName will only work with the TestCase Artifact in TestRail"
+            msg = "AssociateWithStoryByRallyField will only work with the TestCase Artifact in TestRail"
             raise UnrecoverableException.new(msg, self)
           end
           if (rally_conn.artifact_type != :testcase)
-            msg = "AssociateWithStoryByName will only work with the TestCase Artifact in Rally"
+            msg = "AssociateWithStoryByRallyField will only work with the TestCase Artifact in Rally"
             raise UnrecoverableException.new(msg, self)
           end
           
           if (other_conn.rally_story_field_for_plan_id.nil?)
-            msg = "AssociateWithStoryByName requires that the TestRailConnection section have an entry for <RallyStoryFieldForPlanID>"
+            msg = "AssociateWithStoryByRallyField requires that the TestRailConnection section have an entry for <RallyStoryFieldForPlanID>"
             raise UnrecoverableException.new(msg, self)
           end
         end

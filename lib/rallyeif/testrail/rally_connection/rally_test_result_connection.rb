@@ -64,6 +64,21 @@ module RallyEIF
         return check
       end
       
+      def find_result_with_build(build)
+        RallyLogger.debug(self,"Build: #{build}")
+        begin
+          query_result = @rally.find do |q|
+            q.type      = 'testcaseresult'
+            q.workspace = @workspace
+            q.fetch     = true
+            q.query_string = "(Build = #{build})"
+          end
+        rescue Exception => ex
+          raise UnrecoverableException.copy(ex, self)
+        end        
+        return query_result.first
+      end
+      
       def result_with_build_exists?(build,test_date)
         RallyLogger.debug(self,"Build: #{build}, Test Date: #{test_date}")
         begin

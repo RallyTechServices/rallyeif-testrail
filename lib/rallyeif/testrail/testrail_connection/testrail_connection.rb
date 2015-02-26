@@ -473,6 +473,16 @@ module RallyEIF
         return runs
       end
       
+      def find_test_for_run(run_id)
+        tests = []
+          
+        begin
+          tests = @testrail.send_get("get_tests/#{run_id}")
+        rescue Exception => ex
+          raise UnrecoverableException.new("Failed to find any Tests.\n TestRail api returned:#{ex.message}", self)
+        end
+        return tests
+      end
 
       # find and populated related data for plans
       def find_test_plans()
