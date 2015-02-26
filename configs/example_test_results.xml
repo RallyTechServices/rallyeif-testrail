@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <config>
     <RallyTestResultConnection>
-<Url>rally1.rallydev.com</Url>
+        <Url>rally1.rallydev.com</Url>
         <WorkspaceName>My WS</WorkspaceName>
         <Projects>
             <Project>My Project</Project>
@@ -12,10 +12,10 @@
     </RallyTestResultConnection>
 
     <TestRailConnection>
-<Url></Url>
+        <Url></Url>
         <User></User>
         <Password></Password>
-        <ExternalIDField></ExternalIDField>
+        <ExternalIDField></ExternalIDField>  <!-- the field on the test case that has a Rally ID -->
         <ArtifactType>TestResult</ArtifactType>
         <Project></Project>
     </TestRailConnection>
@@ -85,5 +85,8 @@
         <LogLevel>Debug</LogLevel>
         <Preview>false</Preview>
         <Services>COPY_TESTRAIL_TO_RALLY</Services>
+        <PostServiceActions>
+            <CreateTestSets/>
+        </PostServiceActions>
     </ConnectorRunner>
 </config>
