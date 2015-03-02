@@ -17,6 +17,7 @@ module RallyEIF
 
       attr_reader   :testrail, :tr_project
       attr_accessor :project, :section_id
+      attr_reader   :rally_story_field_for_plan_id
       
       #
       # Global info that will be obtained from the TestRail system.
@@ -38,6 +39,9 @@ module RallyEIF
         super(config)
         @url     = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
         @project = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
+        # yes, it's weird to put a field name from a Rally artifact into the other connection
+        # but this keeps us from overriding/monkey-patching the Rally connection class
+        @rally_story_field_for_plan_id = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RallyStoryFieldForPlanID", false)
         @section_id = nil
       end
       
@@ -148,6 +152,8 @@ module RallyEIF
         when 'testrun'
           # No way to get fields.
           
+        when 'testplan'
+          #
         when 'testresult'
           begin   
             cust_fields = @testrail.send_get('get_result_fields')
@@ -213,7 +219,7 @@ module RallyEIF
                             'version'           => 1}
 
         else
-          RallyLogger.error(self, "Unrecognize value for <ArtifactType> '#{@artifact_type}'")
+          RallyLogger.error(self, "Unrecognized value for <ArtifactType> '#{@artifact_type}'")
         end
 
 
@@ -230,6 +236,21 @@ module RallyEIF
         return @testrail
       end
       
+      
+      def add_run_to_plan(testrun,testplan)
+        RallyLogger.debug(self, "Adding #{testrun} to #{testplan}")
+        begin
+          @testrail.send_post("add_plan_entry/#{testplan['id']}", 
+          { 
+            'suite_id'          => testrun['suite_id'],
+            "runs" => [testrun]
+          })
+        rescue Exception => ex
+          raise UnrecoverableException.new("Problem adding TestRun '#{testrun['id']}' to TestPlan '#{testplan['id']}'.\n TestRail api returned:#{ex.message}", self)
+        end
+        
+      end
+
       def get_default_section_id()
         begin
           returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
@@ -254,13 +275,15 @@ module RallyEIF
             RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
           when 'testrun'
             new_item = @testrail.send_post("add_run/#{@tr_project['id']}", int_work_item)
+          when 'testplan'
+            new_item = @testrail.send_post("add_plan/#{@tr_project['id']}", int_work_item)
           when 'testresult'
             run_id = int_work_item['run_id'] || run_id
             case_id = int_work_item['case_id'] || case_id
             new_item = @testrail.send_post("add_result_for_case/#{run_id}/#{case_id}", int_work_item)
             gui_id = '(no ID)'
           else
-            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+            raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}'", self)
           end
         rescue RuntimeError => ex
           RallyLogger.debug(self,"Hep me Hep me 1!!!")
@@ -279,6 +302,8 @@ module RallyEIF
           retval = @testrail.send_post("delete_case/#{item['id']}",nil)
         when 'testrun'
           retval = @testrail.send_post("delete_run/#{item['id']}",nil)
+        when 'testplan'
+          retval = @testrail.send_post("delete_plan/#{item['id']}",nil)
         when 'testresult'
           # ToDo: How to delete a Result?  Not in documentation?
         else
@@ -398,7 +423,6 @@ module RallyEIF
         case @artifact_type.to_s.downcase
         when 'testcase'
           begin
-# ToDo: Add milestone, section, etc
             returned_artifacts = @testrail.send_get("get_cases/#{@tr_project['id']}")
             matching_artifacts = filter_out_already_connected(returned_artifacts)
           rescue Exception => ex
@@ -433,8 +457,15 @@ module RallyEIF
       end
       
       def find_test_runs()
+        plans = find_test_plans()
+        runs = []
+        plans.each do |plan|
+          runs = runs.concat(plan['runs'])
+        end
+        
         begin
-          runs = @testrail.send_get("get_runs/#{@tr_project['id']}")
+          orphan_runs = @testrail.send_get("get_runs/#{@tr_project['id']}")
+          runs = orphan_runs.concat(runs)
         rescue Exception => ex
           raise UnrecoverableException.new("Failed to find any Test Runs.\n TestRail api returned:#{ex.message}", self)
         end
@@ -442,6 +473,16 @@ module RallyEIF
         return runs
       end
       
+      def find_test_for_run(run_id)
+        tests = []
+          
+        begin
+          tests = @testrail.send_get("get_tests/#{run_id}")
+        rescue Exception => ex
+          raise UnrecoverableException.new("Failed to find any Tests.\n TestRail api returned:#{ex.message}", self)
+        end
+        return tests
+      end
 
       # find and populated related data for plans
       def find_test_plans()

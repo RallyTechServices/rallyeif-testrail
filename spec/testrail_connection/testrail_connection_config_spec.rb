@@ -17,6 +17,12 @@ describe "Given configuration in the TestRail section" do
   it "(1), should successfully load basic config settings " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect(connection.artifact_type).to be(TestConfig::TR_ARTIFACT_TYPE.downcase.to_sym)
+    expect(connection.rally_story_field_for_plan_id).to be_nil
+  end
+  
+  it "(1a), should successfully load config settings for use with post action AssociateWithStoryByRallyField " do
+    connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG)
+    expect(connection.rally_story_field_for_plan_id).to eq(TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID)
   end
   
   it "(2), should successfully validate a basic config file " do
