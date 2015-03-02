@@ -259,7 +259,7 @@ module RallyEIF
         end
         
         RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
-        return returned_artifacts.first
+        return returned_artifacts.first || {'id' => -1}
       end
 #---------------------#
       def create_internal(int_work_item)
