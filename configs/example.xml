@@ -9,16 +9,22 @@
         <User>person@place.com</User>
         <Password>secret</Password>
         <ArtifactType>TestCase</ArtifactType>
-        <ExternalIDField>some-custom-field</ExternalIDField>
+        <ExternalIDField>ExternalID</ExternalIDField>
     </RallyConnection>
 
     <TestRailConnection>
-        <Url>your.testrail.com</Url>
-        <Project>My-Project</Project>
-        <User>person@place.com</User>
-        <Password>secret</Password>
-        <ExternalIDField>some-custom-field</ExternalIDField>
+        <Url></Url>
+        <User></User>
+        <Password></Password>
+        <ExternalIDField></ExternalIDField>
         <ArtifactType>TestCase</ArtifactType>
+        <Project></Project>
+        <!-- use below when associating test cases to stories using the
+           * Test Plan ID on Rally Story method.  Put the field that is 
+           * the Rally story that will hold the ID for a test plan in Test
+           * Rail which will have test cases to associate to the story
+           -->
+        <RallyStoryFieldForPlanID></RallyStoryFieldForPlanID>
     </TestRailConnection>
 
     <Connector>
@@ -31,5 +37,18 @@
         <LogLevel>Debug</LogLevel>
         <Preview>false</Preview>
         <Services>COPY_TESTRAIL_TO_RALLY</Services>
+        <PostServiceActions>
+          <!-- use to associate stories with test cases that are in a test plan
+              * where the test plan starts with the User Story Formatted ID
+          -->
+            <!-- <AssociateWithStoryByName/> -->
+          <!-- use to associate stories with test cases that are in a test plan
+             * where the test plan ID is on the story in Rally 
+             * ** REQUIRES the <RallyStoryFieldForPlanID> be set in the 
+             *    TestRailConnection section above
+           -->
+            <!-- <AssociateWithStoryByRallyField/> -->
+        </PostServiceActions>
+        
     </ConnectorRunner>
 </config>
