@@ -108,7 +108,7 @@ module RallyEIF
           rescue Exception => ex
             raise RecoverableException.copy(ex, self)
           end
-          RallyLogger.info(self, "  Created #{artifact["FormattedID"]}")
+          RallyLogger.info(self, "  Created #{@artifact_type}; ObjectID='#{artifact["ObjectID"]}'")
         end
         return artifact
       end
