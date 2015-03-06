@@ -27,7 +27,7 @@ $my_util_name   = 'SetFields.rb'
 # Check that we have access to the required Ruby GEM(s).
 #
 failed_requires = 0
-%w{debugger  ../rallyeif-testrail-JP/testrail-api-master/ruby/testrail.rb}.each do |this_Require|
+%w{debugger  ./lib/testrail-api-master/ruby/testrail.rb}.each do |this_Require|
   begin
     require this_Require
   rescue LoadError

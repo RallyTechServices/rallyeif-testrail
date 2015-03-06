@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require './testrail-api-master/ruby/testrail.rb'
+require './lib/testrail-api-master/ruby/testrail.rb'
 
 $my_testrail_url        = 'https://somewhere.testrail.com'
 $my_testrail_user       = 'user@company.com'
