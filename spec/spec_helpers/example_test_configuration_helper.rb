@@ -57,7 +57,7 @@ module TestConfig
   # 2) Click 'Administration' (top right)
   # 3) Click 'Customizations'
   # 4) Click 'Add Field' under 'Test Case Field'
-  # 5) Enter values for 'Label', 'Description', System Name', and 'Type'
+  # 5) Enter values for 'Label', 'Description', 'System Name', and 'Type'
   # 6) Click 'Add Projects & Options'
   # 7) Click 'Selected Projects' tab in pop-up; select 'These options apply to all projects'
   # 8) Click 'OK'

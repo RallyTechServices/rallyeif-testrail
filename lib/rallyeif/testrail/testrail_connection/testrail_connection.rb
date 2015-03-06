@@ -1,7 +1,7 @@
 # Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
 
 require 'rallyeif-wrk'
-require './testrail-api-master/ruby/testrail.rb'
+require './lib/testrail-api-master/ruby/testrail.rb'
 
 RecoverableException   = RallyEIF::WRK::RecoverableException if not defined?(RecoverableException)
 UnrecoverableException = RallyEIF::WRK::UnrecoverableException

@@ -1,10 +1,12 @@
 .buildpath
 .idea/
 .project
+*.pem
 Gemfile
 Gemfile.lock
 LOCK.tmp
 MyVars.rb
+VCE-TestRail-Data
 configs/Encoded-*
 configs/*time.file
 configs/test*
