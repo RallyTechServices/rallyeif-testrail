@@ -1,7 +1,7 @@
 # Copyright 2001-2014 Rally Software Development Corp. All Rights Reserved.
 
 require 'rallyeif-wrk'
-require './testrail-api-master/ruby/testrail.rb'
+require './lib/testrail-api-master/ruby/testrail.rb'
 
 RecoverableException   = RallyEIF::WRK::RecoverableException if not defined?(RecoverableException)
 UnrecoverableException = RallyEIF::WRK::UnrecoverableException
@@ -259,7 +259,7 @@ module RallyEIF
         end
         
         RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
-        return returned_artifacts.first
+        return returned_artifacts.first || {'id' => -1}
       end
 #---------------------#
       def create_internal(int_work_item)
@@ -651,7 +651,7 @@ module RallyEIF
         if !@external_end_user_id_field.nil?
           sys_name = 'custom_' + @external_end_user_id_field.to_s.downcase
           new_fields[sys_name] = end_user_id
-          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{@end_user_id}'")
+          RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{end_user_id}'")
         end
         
         updated_item = update_internal(artifact, new_fields)

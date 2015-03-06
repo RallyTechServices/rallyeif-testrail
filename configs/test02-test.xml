@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!DOCTYPE config SYSTEM "config.dtd" [
+<!ENTITY Encoded-Credentials-Rally    SYSTEM "configs/Encoded-Credentials-Rally.xml">
+<!ENTITY Encoded-Credentials-TestRail SYSTEM "configs/Encoded-Credentials-TestRail.xml">
+]>
+<!-- =====  test02-test.xml  ===== -->
+<config>
+    <RallyConnection>
+<!--    <Url>rally1.rallydev.com</Url>
+        <WorkspaceName>...</WorkspaceName>
+        <Projects>
+            <Project>...</Project>
+        </Projects>
+        <User>...</User>
+        <Password>...</Password>
+-->
+            &Encoded-Credentials-Rally; <!-- This file has the above 7 lines -->
+        <ArtifactType>TestCase</ArtifactType>
+        <ExternalIDField>ExternalID</ExternalIDField>
+    </RallyConnection>
+
+    <TestRailConnection>
+<!--    <Url>https://your.testrail.com</Url>
+        <Project>...</Project>
+        <User>...</User>
+        <Password>...</Password>
+-->
+            &Encoded-Credentials-TestRail; <!-- This file has the above 4 lines -->
+        <ExternalIDField>RallyObjectID</ExternalIDField>
+        <ExternalEndUserIDField>RallyFormattedID</ExternalEndUserIDField>
+        <ArtifactType>TestCase</ArtifactType>
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Name</Rally><Other>Title</Other></Field>
+        </FieldMapping>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+        <PostServiceActions>
+            <AssociateWithStoryByName/>
+        </PostServiceActions>
+    </ConnectorRunner>
+</config>

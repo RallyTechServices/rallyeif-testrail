@@ -16,18 +16,18 @@ module RallyEIF
         end
         
         def transform_out(artifact)
-         
           other_value = @connection.get_value(artifact,@field_name)
           if other_value.nil?
             return nil
           end
                     
           if other_value.is_a? Integer || other_value.to_i
-              return Time.at(other_value).to_datetime.strftime("%FT%TZ")
+            #return Time.at(other_value).to_datetime.strftime("%FT%TZ")
+            return Time.at(other_value).utc.iso8601
           else
             return nil
           end
-        end
+        end #end transform_out
       
         def transform_in(value)
           raise RecoverableException.new("Transforming in for Hash Fields is Not Implemented ", self)
@@ -42,7 +42,6 @@ module RallyEIF
               raise UnrecoverableException.new(problem, self)
             end
           end
-
         end #end read_config
          
       end

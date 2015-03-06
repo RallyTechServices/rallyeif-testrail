@@ -2,9 +2,9 @@
 <config>
     <RallyConnection>
         <Url>rally1.rallydev.com</Url>
-        <WorkspaceName>My WS</WorkspaceName>
+        <WorkspaceName>My-WS</WorkspaceName>
         <Projects>
-            <Project>My Project</Project>
+            <Project>My-Project</Project>
         </Projects>
         <User>person@place.com</User>
         <Password>secret</Password>

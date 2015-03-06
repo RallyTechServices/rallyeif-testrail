@@ -1,11 +1,15 @@
 .buildpath
 .idea/
 .project
+*.pem
+Gemfile
 Gemfile.lock
 LOCK.tmp
-configs/Test*
+MyVars.rb
+VCE-TestRail-Data
 configs/Encoded-*
 configs/*time.file
+configs/test*
 coverage/
 pkg/
 rake-spec.log
