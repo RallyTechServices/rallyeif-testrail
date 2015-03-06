@@ -3,15 +3,15 @@
 # Take care of mapping an enumerated type in one system to the other
 # (handles cases where the value coming from the other system are actual numbers
 #  instead of just string representations of numbers (1 instead of "1"))
-#<RallyNumEnumFieldHandler>
-#  <FieldName>Severity</FieldName>
-#  <Mappings>
-#    <Field><Rally>Crash Data/Loss</Rally><Other>1</Other></Field>
-#    <Field><Rally>Major Problem</Rally><Other>2</Other></Field>
-#    <Field><Rally>Minor Problem</Rally><Other>3</Other></Field>
-#    <Field><Rally>Cosmetic</Rally><Other>4</Other></Field>
-#  </Mappings>
-#</RallyNumEnumFieldHandler>
+#  <RallyNumEnumFieldHandler>
+#    <FieldName>Severity</FieldName>
+#    <Mappings>
+#      <Field><Rally>Crash Data/Loss</Rally> <Other>1</Other></Field>
+#      <Field><Rally>Major Problem</Rally>   <Other>2</Other></Field>
+#      <Field><Rally>Minor Problem</Rally>   <Other>3</Other></Field>
+#      <Field><Rally>Cosmetic</Rally>        <Other>4</Other></Field>
+#    </Mappings>
+#  </RallyNumEnumFieldHandler>
 
 module RallyEIF
   module WRK

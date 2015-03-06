@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<!DOCTYPE config SYSTEM "config.dtd" [
+<!ENTITY Encoded-Credentials-Rally    SYSTEM "configs/Encoded-Credentials-Rally.xml">
+<!ENTITY Encoded-Credentials-TestRail SYSTEM "configs/Encoded-Credentials-TestRail.xml">
+]>
+<!-- =====  test01-test-runs.xml  ===== -->
+<config>
+    <RallyTestResultConnection>
+<!--    <Url>rally1.rallydev.com</Url>
+        <WorkspaceName>...</WorkspaceName>
+        <Projects>
+            <Project>...</Project>
+        </Projects>
+        <User>...</User>
+        <Password>...</Password>
+-->
+            &Encoded-Credentials-Rally; <!-- This file has the above 7 lines -->
+        <ArtifactType>TestCaseResult</ArtifactType>                    
+    </RallyTestResultConnection>
+
+    <TestRailConnection>
+<!--    <Url>https://your.testrail.com</Url>
+        <Project>...</Project>
+        <User>...</User>
+        <Password>...</Password>
+-->
+            &Encoded-Credentials-TestRail; <!-- This file has the above 4 lines -->
+        <ExternalIDField>RallyObjectID</ExternalIDField> <!-- the field on the test case that has a Rally ID -->
+        <ArtifactType>TestResult</ArtifactType>
+    </TestRailConnection>
+
+    <Connector>
+      <FieldMapping>
+            <Field><Rally>Verdict</Rally>   <Other>status_id</Other></Field>
+            <Field><Rally>Build</Rally>     <Other>id</Other></Field>
+            <Field><Rally>Date</Rally>      <Other>created_on</Other></Field>
+            <Field><Rally>TestCase</Rally>  <Other>_testcase</Other></Field>  <!-- field populated internally by code -->
+      </FieldMapping>
+       
+      <OtherFieldHandlers>
+        <!--
+          the _testcase field is more than just the id (it includes name and so on), so we need
+          to convert it to a string
+        -->
+        <OtherHashFieldHandler>
+          <FieldName>_testcase</FieldName>
+          <ReferencedFieldLookupID>id</ReferencedFieldLookupID>  <!-- the field inside the hash -->
+        </OtherHashFieldHandler>
+        
+        <!--
+          the date from Test Rail is in Unix format, but Rally needs an ISO date 
+        -->
+        <OtherUnixDateFieldHandler>
+          <FieldName>created_on</FieldName>
+        </OtherUnixDateFieldHandler>
+
+      </OtherFieldHandlers>
+      <RallyFieldHandlers>
+        <!-- Required field handler: Determines how to lookup the associated test in Rally -->
+        <RallyReferenceFieldHandler>
+            <FieldName>TestCase</FieldName>
+            <!-- Custom field on Rally TestCase to store the unique id for linked QC test -->
+            <ReferencedFieldLookupID>ExternalID</ReferencedFieldLookupID>
+        </RallyReferenceFieldHandler>
+        
+        <!-- 
+            status/verdict in test rail is returned as a number.  to find the number
+           in TestRail, go to admin console, the number at the end of the url when
+           you click on edit a test result status field is its name.  In the default
+           set up, if you click on Passed, you get a url that looks like:
+           https://somewhere.testrail.com/index.php?/admin/statuses/edit/1
+           so the field value for that is 1
+        -->
+        <RallyNumEnumFieldHandler>
+          <FieldName>Verdict</FieldName>
+          <Mappings>
+              <Field><Rally>Pass</Rally>         <Other>1</Other></Field>
+              <Field><Rally>Fail</Rally>         <Other>5</Other></Field>
+              <Field><Rally>Blocked</Rally>      <Other>2</Other></Field>
+              <Field><Rally>Error</Rally>        <Other>4</Other></Field>
+              <Field><Rally>Inconclusive</Rally> <Other>3</Other></Field>
+          </Mappings>
+        </RallyNumEnumFieldHandler>
+      </RallyFieldHandlers>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+    </ConnectorRunner>
+</config>
