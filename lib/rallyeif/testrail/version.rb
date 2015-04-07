@@ -14,7 +14,7 @@ module RallyEIF
       BUILD_NUMBER = "<%= @jenkins_build %>" unless defined? BUILD_NUMBER
 
       def self.detail
-        "ts1"
+        "ts2"
       end
 
     end

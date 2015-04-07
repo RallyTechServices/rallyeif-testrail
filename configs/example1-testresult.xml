@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<config>
+    <RallyTestResultConnection>
+        <Url>rally1.rallydev.com</Url>
+        <WorkspaceName>My-Rally-Workspace</WorkspaceName>
+        <Projects>
+            <Project>My-Rally-Project</Project>
+        </Projects>
+        <User>My-Rally-Username</User>
+        <Password>My-Rally-Password</Password>
+        <ArtifactType>TestCaseResult</ArtifactType>                    
+    </RallyTestResultConnection>
+
+    <TestRailConnection>
+        <Url>My-TestRail-URL</Url>
+        <Project>My-TestRail-Project</Project>
+        <User>My-TestRail-Username</User>
+        <Password>My-TestRail-Password</Password>
+        <!-- The following TestRail custom field (for TestResults, of type
+             Integer) is used to store the Rally ObjectID of the newly created
+             TestCaseResult in Rally.
+        -->
+        <ExternalIDField>RallyObjectID</ExternalIDField>
+        <ArtifactType>TestResult</ArtifactType>
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Verdict</Rally>   <Other>status_id</Other></Field>
+            <Field><Rally>Build</Rally>     <Other>id</Other></Field>
+            <Field><Rally>Date</Rally>      <Other>created_on</Other></Field>
+            <Field><Rally>TestCase</Rally>  <Other>_testcase</Other></Field>  <!-- field populated internally by code -->
+        </FieldMapping>
+       
+        <OtherFieldHandlers>
+            <!-- The _testcase field is more than just the id (it includes name
+                 and so on), so we need to convert it to a string.
+            -->
+            <OtherHashFieldHandler>
+                <FieldName>_testcase</FieldName>
+                <ReferencedFieldLookupID>id</ReferencedFieldLookupID>  <!-- the field inside the hash -->
+            </OtherHashFieldHandler>
+
+            <!-- The date from TestRail is in Unix format, so we need to convert
+                 it to an ISO date for Rally.
+            -->
+            <OtherUnixDateFieldHandler>
+                <FieldName>created_on</FieldName>
+            </OtherUnixDateFieldHandler>
+
+        </OtherFieldHandlers>
+
+        <RallyFieldHandlers>
+            <!-- The following (required) field handler determines how to lookup
+                 the associated test in Rally.
+            -->
+            <RallyReferenceFieldHandler>
+                <FieldName>TestCase</FieldName>
+                <!-- Custom field on Rally TestCase to store the unique id for
+                     linked TestRail test.
+                -->
+                <ReferencedFieldLookupID>TestRailID</ReferencedFieldLookupID>
+            </RallyReferenceFieldHandler>
+ 
+            <!-- The Status/Verdict in TestRail is returned as a number.
+                 To find the number in TestRail, go to Administration,
+                 the Status section (near the bottom), click on the edit pencil
+                 for a particular status field. The number at the end of the
+                 URL when in edit mode is what we use.
+                 Example:
+                    In the default set up, if you click on Passed, you get a
+                    URL like:
+                        https://mytr.testrail.com/index.php?/admin/statuses/edit/1
+                    so the field value for "Passed" is "1".
+
+                Modify the following enum table to match the values from your
+                Rally & TestRail (shown as Other below) instances.
+            -->
+            <RallyNumEnumFieldHandler>
+                <FieldName>Verdict</FieldName>
+                <Mappings>
+                    <Field><Rally>Pass</Rally>         <Other>1</Other></Field>
+                    <Field><Rally>Fail</Rally>         <Other>5</Other></Field>
+                    <Field><Rally>Blocked</Rally>      <Other>2</Other></Field>
+                    <Field><Rally>Error</Rally>        <Other>4</Other></Field>
+                    <Field><Rally>Inconclusive</Rally> <Other>3</Other></Field>
+                </Mappings>
+            </RallyNumEnumFieldHandler>
+        </RallyFieldHandlers>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>true</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+        <PostServiceActions>
+            <CreateTestSets/>
+        </PostServiceActions>
+    </ConnectorRunner>
+</config>

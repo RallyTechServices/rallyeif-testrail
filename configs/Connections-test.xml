@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<config>
+    <RallyConnection>
+        <Url>rally1.rallydev.com</Url>
+        <WorkspaceName>My-Rally-Workspace</WorkspaceName>
+        <Projects>
+            <Project>My-Rally-Project</Project>
+        </Projects>
+        <User>My-Rally-Username</User>
+        <Password>My-Rally-Password</Password>
+        <ArtifactType>TestCase</ArtifactType>
+        <ExternalIDField>My-Rally-Custom-Field</ExternalIDField>
+    </RallyConnection>
+
+    <TestRailConnection>
+        <Url>https://My-Account.testrail.com</Url>
+        <Project>My-TestRail-Project</Project>
+        <User>My-testRail-Username</User>
+        <Password>My-TestRail-Password</Password>
+        <ArtifactType>TestCase</ArtifactType>
+        <ExternalIDField>My-TestRail-Custom-Field-1</ExternalIDField>
+        <ExternalEndUserIDField>My-TestRail-Custom-Field-2</ExternalEndUserIDField>
+        <CrosslinkUrlField>My-TestRail-Custom-Field-3</CrosslinkUrlField>
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <!-- This section is currently empty as this configuration file
+                 is only used for testing connectivity to both systems.
+            -->
+        </FieldMapping>
+    </Connector>
+  
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>true</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+    </ConnectorRunner>
+</config>
