@@ -128,7 +128,7 @@ B.) Installation of RVM and Ruby:
                    rallyeif-wrk-0.5.5
 
 
-    07) When done, the default installed GEMs loaded are:
+    07) When done, the default installed GEMs are:
             - Command:
                 $ gem list
             - Output:
