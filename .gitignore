@@ -9,7 +9,7 @@ MyVars.rb
 VCE-TestRail-Data
 configs/Encoded-*
 configs/*time.file
-configs/test*
+configs/test-*
 coverage/
 pkg/
 rake-spec.log
