@@ -58,7 +58,7 @@
             <!-- =========================================================== -->
             <!-- Method 2: Used to associate stories with test cases that are
                            in a TestPlan where the TestPlan ID is entered by
-                           the user ontothe User Story in Rally.
+                           the user onto the User Story in Rally.
                            ** NOTE: This method requires the use of the XML tag
                                     <RallyStoryFieldForPlanID> in the section
                                     <TestRailConnection> above.

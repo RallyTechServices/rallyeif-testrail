@@ -97,15 +97,39 @@ module RallyEIF
             if found_projects.length == 1
               RallyLogger.info(self,"Found project:")
             end
-            RallyLogger.info(self,"\tid:#{proj['id']}  name:#{proj['name']}  url:#{proj['url']}   is_completed:#{proj['is_completed']}")
+            #RallyLogger.info(self,"\tid:#{proj['id']}  name:#{proj['name']}  url:#{proj['url']}   is_completed:#{proj['is_completed']}")
+            RallyLogger.info(self,"         name: #{proj['name']} (id=#{proj['id']})")
+            RallyLogger.info(self,"          url: #{proj['url']}")
+            RallyLogger.info(self,"   suite_mode: #{proj['suite_mode']} (1: single suite, 2: 1+baselines, 3: multiple suites)")
+            if proj['is_completed'] == true
+              prettydate = Time.at(proj['completed_on']).to_datetime
+              cdate = "(on #{prettydate})"
+            else
+              cdate = ''
+            end
+            RallyLogger.info(self," is_completed: #{proj['is_completed']} #{cdate}")
           end
         end
         if found_projects.length != 1
           raise UnrecoverableException.new("Found '#{found_projects.length}' projects named '#{@project}'; the connector needs one and only one", self)
         end
-        @tr_project = found_projects[0].to_hash
-        
-        @section_id = get_default_section_id()['id']
+        @tr_project    = found_projects[0].to_hash
+        @tr_project_sm = @tr_project['suite_mode']
+          if @tr_project_sm == 3
+            returned_suites = @testrail.send_get("get_suites/#{@tr_project['id']}")
+            RallyLogger.info(self,"Found '#{returned_suites.length}' suites in above project:")
+            returned_suites.each do |sweet|
+              RallyLogger.info(self,"\tsuite id=#{sweet['id']}, name=#{sweet['name']}")
+            end
+            #"description": "..",
+            #"id": 1,
+            #"name": "Setup & Installation",
+            #"project_id": 1,
+            #"url": "http://<server>/testrail/index.php?/suites/view/1"
+          end
+        @section_id    = get_default_section_id()['id']
+          
+          
         #
         # CUSTOM FIELDS:  Build a hash of custom fields for the given <Artifactype>.
         # Each entry:  {'system_name' => ['name', 'label', 'type_id', [ProjIDs]}
@@ -196,7 +220,7 @@ module RallyEIF
                             'milestone_id'      => 2,
                             'priority_id'       => 2,
                             'refs'              => 1,
-                            'section_id'        => @section_id,
+                            'section_id'        => 2,
                             'suite_id'          => 2,
                             'title'             => 1,
                             'type_id'           => 2,
@@ -252,14 +276,25 @@ module RallyEIF
       end
 
       def get_default_section_id()
+RallyLogger.debug(self,"JPKdebug: #{@tr_project['id']}")
+RallyLogger.debug(self,"JPKdebug: get_sections/#{@tr_project['id']}")
         begin
           returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
         rescue Exception => ex
           RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
         end
         
-        RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
-        return returned_artifacts.first || {'id' => -1}
+        if returned_artifacts.nil?
+          return {'id' => -1}
+        else
+          RallyLogger.debug(self, "Found '#{returned_artifacts.length}' sections:")
+          returned_artifacts.each do |sec|
+            RallyLogger.debug(self, "\tid=#{sec['id']},  suite_id=#{sec['suite_id']},  name=#{sec['name']}")
+          end
+RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.class}")
+#RallyLogger.debug(self,"JPKdebug: returned_artifacts.length=#{returned_artifacts.length}")
+          return returned_artifacts.first
+        end
       end
 #---------------------#
       def create_internal(int_work_item)
