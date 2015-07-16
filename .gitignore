@@ -17,3 +17,4 @@ rallylog.log*
 reldir*
 show-test-case.vars.rb
 test_configuration_helper.rb
+create-1pr-*
