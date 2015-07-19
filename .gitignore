@@ -10,6 +10,7 @@ VCE-TestRail-Data
 configs/Encoded-*
 configs/*time.file
 configs/test-*
+configs/JP-VCE-demo-*
 coverage/
 pkg/
 rake-spec.log
@@ -17,3 +18,4 @@ rallylog.log*
 reldir*
 show-test-case.vars.rb
 test_configuration_helper.rb
+create-1pr-*

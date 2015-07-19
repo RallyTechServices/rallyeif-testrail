@@ -40,7 +40,7 @@ describe "When trying to find TestRail test case results" do
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
         "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
-        'TestPlan',                                  #4 VALUE   - New value to put into NEWTAG
+        'TestPlan',                                 #4 VALUE   - New value to put into NEWTAG
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
     @connection_testplan = testrail_connect(config_testplan)
@@ -48,13 +48,13 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase   = []
     @items_to_remove_testresult = []
     @items_to_remove_testrun    = []
-    @items_to_remove_testplan    = []
+    @items_to_remove_testplan   = []
   end
   
   after(:each) do    
      @items_to_remove_testresult.each { |item| @connection_testresult.delete(item) }
      @items_to_remove_testrun.each    { |item| @connection_testrun.delete(item)    }
-     @items_to_remove_testplan.each    { |item| @connection_testplan.delete(item)    }
+     @items_to_remove_testplan.each   { |item| @connection_testplan.delete(item)   }
      @items_to_remove_testcase.each   { |item| @connection_testcase.delete(item)   }
   end
   
@@ -75,7 +75,7 @@ describe "When trying to find TestRail test case results" do
     
     # 4 - Create a TestResult
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id,
-                                                                                      'case_id' => testcase['id']})
+                                                                                 'case_id' => testcase['id']})
     @items_to_remove_testresult.push(testresult)
     
     # 5 - Find all 'new' results again
@@ -141,7 +141,10 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase.push(testcase)
       
     # Create a run in the plan
-    updated_plan = @connection_testplan.add_run_to_plan({ 'suite_id' => '7' },testplan)
+    projid = @connection_testplan.tr_project['id']
+    suids = @connection_testplan.get_suite_ids(@connection_testcase,projid)
+    #print "debug: suids.length=#{suids.length}   suids[0]['id']=#{suids[0]['id']}   suids=#{suids}\n"
+    updated_plan = @connection_testplan.add_run_to_plan({ 'suite_id' => suids[0]['id'] },testplan)
     
     runs = updated_plan['runs']
     run = runs[0]
@@ -174,7 +177,7 @@ describe "When trying to find TestRail test case results" do
     
     # 4 - Create a TestResult for the TestCase.
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id,
-                                                                                      'case_id' => testcase['id']})
+                                                                                 'case_id' => testcase['id']})
     @items_to_remove_testresult.push(testresult)
     
     # 5 - Find all 'new' TestResults again.

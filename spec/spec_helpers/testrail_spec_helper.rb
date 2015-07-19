@@ -176,6 +176,7 @@ module TestRailSpecHelper
                 #'milestone_id'  => 2      ,
                 'priority_id'   => 5      ,
                 'refs'          => ''     ,
+                'section_id'    => 0      ,
                 'title'         => "Auto Test Case - #{title}"  ,
                 'type_id'       => 6      }
       fields.merge!(extra_fields) if !extra_fields.nil?
@@ -221,17 +222,17 @@ module TestRailSpecHelper
 
     when 'testresult'
       # TestResult system fields (* = system fields supported on POST):
-      #  *  assignedto_id  int The ID of the assignee (user) of the test result
-      #  *  comment        string  The comment or error message of the test result
-      #     created_by     int The ID of the user who created the test result
-      #     created_on     timestamp The date/time when the test result was created (as UNIX timestamp)
-      #  *  defects        string  A comma-separated list of defects linked to the test result
-      #  *  elapsed        timespan  The amount of time it took to execute the test (e.g. "1m" or "2m 30s")
-      #     id             int The unique ID of the test result
-      #  *  status_id      int The status of the test result, e.g. passed or failed, also see get_statuses
-      #                       1=Passed, 2=Blocked, 3=Untested, 4=Retest, 5=Failed
-      #     test_id        int The ID of the test this test result belongs to
-      #  *  version        string  The (build) version the test was executed against
+      #  *  assignedto_id  int        The ID of the assignee (user) of the test result
+      #  *  comment        string     The comment or error message of the test result
+      #     created_by     int        The ID of the user who created the test result
+      #     created_on     timestamp  The date/time when the test result was created (as UNIX timestamp)
+      #  *  defects        string     A comma-separated list of defects linked to the test result
+      #  *  elapsed        timespan   The amount of time it took to execute the test (e.g. "1m" or "2m 30s")
+      #     id             int        The unique ID of the test result
+      #  *  status_id      int        The status of the test result, e.g. passed or failed, also see get_statuses
+      #                               1=Passed, 2=Blocked, 3=Untested, 4=Retest, 5=Failed
+      #     test_id        int        The ID of the test this test result belongs to
+      #  *  version        string     The (build) version the test was executed against
       #
       # Required in a 'GET' url:
       #     get_results:            :test_id
@@ -253,10 +254,29 @@ module TestRailSpecHelper
       
       item = connection.create(fields)
       return [item, item['id']]
+        
     when 'testplan'
-      
+      # TestPlan system fields (* = system fields supported on POST):
+      #     assignedto_id   int       The ID of the user the entire test plan is assigned to
+      #     blocked_count   int       The amount of tests in the test plan marked as blocked
+      #     completed_on    timestamp The date/time when the test plan was closed (as UNIX timestamp)
+      #     created_by      int       The ID of the user who created the test plan
+      #     created_on      timestamp The date/time when the test plan was created (as UNIX timestamp)
+      #     custom_status?_count int  The amount of tests in the test plan with the respective custom status
+      #  *  description     string    The description of the test plan
+      #  *  entries         array     An array of 'entries', i.e. group of test runs
+      #     failed_count    int       The amount of tests in the test plan marked as failed
+      #     id              int       The unique ID of the test plan
+      #     is_completed    bool      True if the test plan was closed and false otherwise
+      #  *  milestone_id    int       The ID of the milestone this test plan belongs to
+      #  *  name            string    The name of the test plan
+      #     passed_count    int       The amount of tests in the test plan marked as passed
+      #     project_id      int       The ID of the project this test plan belongs to
+      #     retest_count    int       The amount of tests in the test plan marked as retest
+      #     untested_count  int       The amount of tests in the test plan marked as untested
+      #     url             string    The address/URL of the test plan in the user interface
       fields = {
-        'name'          => 'Test Plan - ' + title
+        'name' => 'Test Plan - ' + title
       }
       fields.merge!(extra_fields) if !extra_fields.nil?
       

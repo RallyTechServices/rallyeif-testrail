@@ -45,10 +45,46 @@ def get_projects()
     print "\n03) Total Projects found: #{all_PROJECTs.length}\n"
     if all_PROJECTs.length > 0
         all_PROJECTs.each do |this_PROJECT|
-            print "\tid:'#{this_PROJECT['id']}'  name:'#{this_PROJECT['name']}'  url:'#{this_PROJECT['url']}'\n"
+            print "\tid:'#{this_PROJECT['id']}'"
+            print "  suite_mode:'#{this_PROJECT['suite_mode']}'"
+            print "  name:'#{this_PROJECT['name']}'"
+            print "  url:'#{this_PROJECT['url']}'"
+            print "\n"
+
+            if this_PROJECT['suite_mode'] == 3
+                returned_suites = @tr_con.send_get("get_suites/#{this_PROJECT['id']}")
+                print "\t\tFound '#{returned_suites.length}' suites in above project:\n"
+                returned_suites.each do |sweet|
+                    print "\t\t\tsuite id=#{sweet['id']}, name=#{sweet['name']}\n"
+                end
+            end
         end
     end
-    return all_PROJECTs.last
+    return all_PROJECTs
+end
+
+def get_desired_proj (dp_name,all_projects)
+    target_proj = nil
+    all_projects.each do |pj|
+        if pj['name'] == dp_name
+        target_proj = pj
+        end
+    end
+    
+    print "\n"
+    if target_proj.nil?
+        if all_projects.length > 0
+            target_proj = all_projects[0]
+        else
+            print "exiting...\n"
+            exit
+        end
+        print "\tCan't find desired project '#{dp_name}'; using project '#{target_proj['name']} (id=#{target_proj['id']})' instead (first project found).\n"
+    else
+        print "\tUsing desired project '#{target_proj['name']} (id=#{target_proj['id']})'.\n"
+    end
+
+    return target_proj
 end
 
 
@@ -198,8 +234,8 @@ def get_case_types
 end
 
 
-def get_cases(project_id:1, suite_id:'', section_id:'')
-    uri = "get_cases/#{project_id}&suite_id=#{suite_id}&section_id=#{section_id}"
+def get_cases(target_proj, suite_id:'', section_id:'')
+    uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
     all_cases = @tr_con.send_get(uri)
     print "\n08) Total test cases found: #{all_cases.length}"
     if all_cases.length > 0
@@ -211,14 +247,15 @@ def get_cases(project_id:1, suite_id:'', section_id:'')
             end
             print "#{item['id']}"
         end
-        print ")\n"
     end
+    print "\n"
     return all_cases.last
 end
 
 
-def get_case(case_id: 1)
+def get_case(case_id:1)
     uri = "get_case/#{case_id}"
+    puts "JPKOLE"
     this_case = @tr_con.send_get(uri)
         #{"id"						=> 397,
 		# "title"					=> "Time-2015-01-09_08:08:00-678043",
@@ -255,8 +292,8 @@ def get_case(case_id: 1)
 end
 
 
-def get_runs(project_id:1)
-    uri = "get_runs/#{project_id}"
+def get_runs(target_proj)
+    uri = "get_runs/#{target_proj['id']}"
     all_runs = @tr_con.send_get(uri)
         #[{"id"						=> 1,
         #  "suite_id"				=> 1,
@@ -286,13 +323,15 @@ def get_runs(project_id:1)
         #  "created_on"				=> 1417639979,
         #  "created_by"				=> 1,
         #  "url"					=> "https://tsrally.testrail.com/index.php?/runs/view/1"}]
-    print "\n10) Found '#{all_runs.length}' Runs for project '#{project_id}':\n"
-    print "\t                                proj     created\n"
-    print "\tid  name                          id          on\n"
-    print "\t--  --------------------------  ----  ----------\n"
-    all_runs.each do |item|
+    print "\n10) Found '#{all_runs.length}' Runs for project '#{target_proj['id']}':\n"
+    all_runs.each_with_index do |item,ndx|
+        if ndx == 0
+            print "\t                                                proj     created\n"
+            print "\tid  name                                          id          on\n"
+            print "\t--  ------------------------------------------  ----  ----------\n"
+        end
         print "\t%2d"%[item['id']]
-        print "  %-26s"%[item['name']]
+        print "  %-42s"%[item['name']]
         print "  %4d"%[item['project_id']]
         print "  %10d"%[item['created_on']]
         print "\n"
@@ -332,14 +371,17 @@ end
 ##########---MAIN---##########
 
 get_testrail_connection()
-get_projects()
+all_projects = get_projects()
+target_proj = get_desired_proj('Test-Proj-01', all_projects)
 get_case_fields()
 get_result_fields()
 get_priorities()
 get_case_types()
-lc = get_cases(project_id:1)
-get_case(case_id:lc['id'])
-get_runs()
+lc = get_cases(target_proj)
+if !lc.nil?
+    get_case(case_id:lc['id'])
+end
+get_runs(target_proj)
 get_results()
 
 exit
