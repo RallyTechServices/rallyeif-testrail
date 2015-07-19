@@ -10,6 +10,7 @@ VCE-TestRail-Data
 configs/Encoded-*
 configs/*time.file
 configs/test-*
+configs/JP-VCE-demo-*
 coverage/
 pkg/
 rake-spec.log

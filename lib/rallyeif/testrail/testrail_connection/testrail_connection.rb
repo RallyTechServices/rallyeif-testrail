@@ -95,7 +95,7 @@ module RallyEIF
           if proj['name'] == @project
             found_projects.push proj
             if found_projects.length == 1
-              RallyLogger.info(self,"Found project:")
+              RallyLogger.info(self,"Found project: P#{proj['id']}")
             end
             #RallyLogger.info(self,"\tid:#{proj['id']}  name:#{proj['name']}  url:#{proj['url']}   is_completed:#{proj['is_completed']}")
             RallyLogger.info(self,"         name: #{proj['name']} (id=#{proj['id']})")
@@ -115,18 +115,20 @@ module RallyEIF
         end
         @tr_project    = found_projects[0].to_hash
         @tr_project_sm = @tr_project['suite_mode']
-          if @tr_project_sm == 3
-            returned_suites = @testrail.send_get("get_suites/#{@tr_project['id']}")
-            RallyLogger.info(self,"Found '#{returned_suites.length}' suites in above project:")
-            returned_suites.each do |sweet|
-              RallyLogger.info(self,"\tsuite id=#{sweet['id']}, name=#{sweet['name']}")
-            end
-            #"description": "..",
-            #"id": 1,
-            #"name": "Setup & Installation",
-            #"project_id": 1,
-            #"url": "http://<server>/testrail/index.php?/suites/view/1"
+        if @tr_project_sm == 3
+          returned_suites = @testrail.send_get("get_suites/#{@tr_project['id']}")
+          RallyLogger.info(self,"Found '#{returned_suites.length}' suites in above project:")
+          @tr_suite_ids = Array.new
+          returned_suites.each do |sweet|
+            RallyLogger.info(self,"\tsuite id=#{sweet['id']}, name=#{sweet['name']}")
+            @tr_suite_ids.push(sweet['id'])
           end
+          #"description": "..",
+          #"id": 1,
+          #"name": "Setup & Installation",
+          #"project_id": 1,
+          #"url": "http://<server>/testrail/index.php?/suites/view/1"
+        end
         @section_id    = get_default_section_id()['id']
           
           
@@ -241,9 +243,29 @@ module RallyEIF
                             'status_id'         => 2,
                             'test_id '          => 2,
                             'version'           => 1}
-
+                            
+          when 'testplan'#  Field-name          Type (1=String, 2=Integer, 3=array, 4=bool)
+          @tr_fields_tp =  {'assignedto_id'         => 2,
+                            'blocked_count'         => 2,
+                            'completed_on'          => 2,
+                            'created_by'            => 2,
+                            'created_on'            => 2,
+                            'custom_status?_count'  => 2,
+                            'description'           => 1,
+                            'entries'               => 3,
+                            'failed_count'          => 2,
+                            'id'                    => 2,
+                            'is_completed'          => 4,
+                            'milestone_id'          => 2,
+                            'name'                  => 1,
+                            'passed_count'          => 2,
+                            'project_id'            => 2,
+                            'retest_count'          => 2,
+                            'untested_count'        => 2,
+                            'url'                   => 1}
+            
         else
-          RallyLogger.error(self, "Unrecognized value for <ArtifactType> '#{@artifact_type}'")
+          RallyLogger.error(self, "Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg1)")
         end
 
 
@@ -262,7 +284,7 @@ module RallyEIF
       
       
       def add_run_to_plan(testrun,testplan)
-        RallyLogger.debug(self, "Adding #{testrun} to #{testplan}")
+        RallyLogger.debug(self, "Adding testrun '#{testrun}' to testplan '#{testplan}'")
         begin
           @testrail.send_post("add_plan_entry/#{testplan['id']}", 
           { 
@@ -273,28 +295,6 @@ module RallyEIF
           raise UnrecoverableException.new("Problem adding TestRun '#{testrun['id']}' to TestPlan '#{testplan['id']}'.\n TestRail api returned:#{ex.message}", self)
         end
         
-      end
-
-      def get_default_section_id()
-RallyLogger.debug(self,"JPKdebug: #{@tr_project['id']}")
-RallyLogger.debug(self,"JPKdebug: get_sections/#{@tr_project['id']}")
-        begin
-          returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
-        rescue Exception => ex
-          RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
-        end
-        
-        if returned_artifacts.nil?
-          return {'id' => -1}
-        else
-          RallyLogger.debug(self, "Found '#{returned_artifacts.length}' sections:")
-          returned_artifacts.each do |sec|
-            RallyLogger.debug(self, "\tid=#{sec['id']},  suite_id=#{sec['suite_id']},  name=#{sec['name']}")
-          end
-RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.class}")
-#RallyLogger.debug(self,"JPKdebug: returned_artifacts.length=#{returned_artifacts.length}")
-          return returned_artifacts.first
-        end
       end
 #---------------------#
       def create_internal(int_work_item)
@@ -318,7 +318,7 @@ RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.
             new_item = @testrail.send_post("add_result_for_case/#{run_id}/#{case_id}", int_work_item)
             gui_id = '(no ID)'
           else
-            raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}'", self)
+            raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg2)", self)
           end
         rescue RuntimeError => ex
           RallyLogger.debug(self,"Hep me Hep me 1!!!")
@@ -470,7 +470,7 @@ RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.
         when 'testresult'
           matching_artifacts = find_test_results()
         else
-          raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg3)", self)
         end
 
         RallyLogger.info(self, "Found '#{matching_artifacts.length}' new TestRail '#{@artifact_type}' objects")
@@ -619,6 +619,39 @@ RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.
         return artifact_array
       end
 #---------------------#
+#      def get_default_section_id()
+#RallyLogger.debug(self,"JPKdebug: #{@tr_project['id']}")
+#RallyLogger.debug(self,"JPKdebug: get_sections/#{@tr_project['id']}")
+#        begin
+#          returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
+#        rescue Exception => ex
+#          RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
+#        end
+#        
+#        if returned_artifacts.nil?
+#          return {'id' => -1}
+#        else
+#          RallyLogger.debug(self, "Found '#{returned_artifacts.length}' sections:")
+#          returned_artifacts.each do |sec|
+#            RallyLogger.debug(self, "\tid=#{sec['id']},  suite_id=#{sec['suite_id']},  name=#{sec['name']}")
+#          end
+#RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.class}")
+##RallyLogger.debug(self,"JPKdebug: returned_artifacts.length=#{returned_artifacts.length}")
+#          return returned_artifacts.first || {'id' => -1}
+#        end
+#      end
+#---------------------#      
+      def get_default_section_id()
+        begin
+          returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
+        rescue Exception => ex
+          RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
+        end
+     
+        RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
+        return returned_artifacts.first || {'id' => -1}
+      end      
+#---------------------#
       # This method will hide the actual call of how to get the id field's value
       def get_id_value(artifact)
         return get_value(artifact,'id')
@@ -629,6 +662,11 @@ RallyLogger.debug(self,"JPKdebug: returned_artifacts.class=#{returned_artifacts.
         linktext = artifact[@id_field] || 'link'
         it = "<a href='https://#{@url}/#{artifact['id']}'>#{linktext}</a>"
         return it
+      end
+#---------------------#
+      def get_suite_ids(connection,projid)
+        all_suites = @testrail.send_get("get_suites/#{projid}")
+        return all_suites
       end
 #---------------------#
       def get_value(artifact,field_name)
