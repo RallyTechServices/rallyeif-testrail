@@ -61,9 +61,13 @@ module RallyEIF
   
             query.query_string = base_string
             RallyLogger.debug(self, "Rally using query: #{query.query_string}")
-  
+            
             query_result = @rally_connection.rally.find(query)
-  
+#RallyLogger.debug(self, "JPKdebug*****: query_result.length: #{query_result.length}")
+#query_result.each_with_index do |nextone,i|
+#  RallyLogger.debug(self, "JPKdebug*****: #{i+1}:  FmtID=#{nextone.FormattedID}  OID=#{nextone.ObjectID}")
+#  RallyLogger.debug(self, "JPKdebug*****: query_result.inspect: #{nextone.inspect}") 
+#end
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
@@ -126,7 +130,8 @@ module RallyEIF
               if !rally_oid.nil?
                 rally_test_case = find_rally_test_case_by_oid(rally_oid)
                 if !rally_test_case.nil?
-                  rally_test_set = find_rally_test_set_by_name(run_name)
+                  #rally_test_set = find_rally_test_set_by_name(run_name)
+                  rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
                   if rally_test_set.nil?
                     rally_test_set = create_rally_test_set(run_name,rally_test_case)
                   end
@@ -148,10 +153,9 @@ module RallyEIF
             RallyLogger.debug(self,"testresult: #{testresult}")
             RallyLogger.debug(self,"test: #{testresult['_test']['run_id']}")
             rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
-            
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
             if !rally_result.nil?
-              fields = {"TestSet"=>rally_test_set}
+              fields = {"TestSet"=>{'_ref'=>rally_test_set['_ref']}}
               rally_result.update(fields)
             else
               RallyLogger.info(self, "No result found in Rally: #{testresult['id']}")

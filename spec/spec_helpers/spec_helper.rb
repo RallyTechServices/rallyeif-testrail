@@ -133,7 +133,7 @@ module YetiTestUtils
     #  rally_connection.connect()
     #  return rally_connection
     #end
-
+    
     def read_config(config_file)
       #root = XMLUtils::strip_empty_text_nodes(YetiTestUtils::load_xml(config_file).root)
       root = YetiTestUtils::load_xml(config_file).root
