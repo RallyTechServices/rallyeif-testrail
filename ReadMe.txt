@@ -1,47 +1,19 @@
-Date: 07-Apr-2015
+Date: 20-Jul-2015
 From: John P. Kole
-Subj: How to install and use Rally's TestRail connector on CentOS - reldir-02
+Subj: How to install and use Rally's TestRail connector on CentOS - reldir-03
 
 This document is composed of the following sections:
     A.) Overview:
     B.) Installation of RVM and Ruby:
     C.) Installation of the TestRail connector GEMs:
     D.) Create custom fields in Rally and TestRail:
-    E.) Running the TestRail connector:
+    E.) Testing the TestRail connector:
+    F.) Running a simple demo with the TestRail connector:
 
 
 A.) Overview:
     01) This connector release consists of the following files:
-            - ReadMe.txt
-            - Gemfile
-            - configs
-                - example1-testcase.xml
-                - example1-testresult.xml
-                - Connections-test.xml
-            - gems/
-                - activesupport-4.2.1.gem
-                - httpclient-2.4.0.gem
-                - i18n-0.7.0.gem
-                - mime-types-2.4.3.gem
-                - mini_portile-0.6.2.gem
-                - minitest-5.5.1.gem
-                - multipart-post-2.0.0.gem
-                - nokogiri-1.6.6.2.gem
-                - rally_api-1.1.2.gem
-                - rallyeif-testrail-4.0.0.gem
-                - rallyeif-wrk-0.5.5.gem
-                - rdoc-4.2.0.gem
-                - thread_safe-0.3.5.gem
-                - tzinfo-1.2.2.gem
-                - xml-simple-1.1.5.gem
-                - z-uninstall_all.txt
-            - lib/
-                - testrail-api-master/
-                    - license.md
-                    - readme.md
-                    - ruby/
-                        - readme.md
-                        - testrail.rb
+            (please see section C-01 below for a listing of archive contents)
 
 
     02) This connnector was tested on Ruby version ruby-2.1.5,
@@ -102,7 +74,8 @@ B.) Installation of RVM and Ruby:
                 Using /Users/jpkole/.rvm/gems/ruby-2.1.5
 
 
-    04) Create a "gemset" to be used with the TestRail connector:
+    04) Create a "gemset" to be used with the TestRail connector (a "gemset" is basically a collection of Ruby
+        "Libraries" that wwork together and may be revision dependant):
             - Command:
                 $ rvm gemset create TestRail-4.0.0-ruby-2.1.5
             - Output:
@@ -128,7 +101,7 @@ B.) Installation of RVM and Ruby:
                    rallyeif-wrk-0.5.5
 
 
-    07) When done, the default installed GEMs are:
+    07) When done, the default installed GEMs are (this is the minimal set one gets with Ruby):
             - Command:
                 $ gem list
             - Output:
@@ -151,48 +124,49 @@ B.) Installation of RVM and Ruby:
                 test-unit (2.1.5.0)
 
 
-C.) Installation of the TestRail connector GEMs:
+C.) Installation of the TestRail connector and the Ruby GEMs:
     01) Extract the ZIP file provided into a work area (like your home folder):
             - Command:
-                $ unzip reldir-02.zip 
+                $ unzip reldir-03.zip 
             - Output:
-                Archive:  reldir-02.zip
-				   creating: reldir-02/
-				   creating: reldir-02/gems/
-				  inflating: reldir-02/gems/activesupport-4.2.1.gem  
-				  inflating: reldir-02/gems/httpclient-2.4.0.gem  
-				  inflating: reldir-02/gems/i18n-0.7.0.gem  
-				  inflating: reldir-02/gems/mime-types-2.4.3.gem  
-				  inflating: reldir-02/gems/mini_portile-0.6.2.gem  
-				  inflating: reldir-02/gems/minitest-5.5.1.gem  
-				  inflating: reldir-02/gems/multipart-post-2.0.0.gem  
-				  inflating: reldir-02/gems/nokogiri-1.6.6.2.gem  
-				  inflating: reldir-02/gems/rally_api-1.1.2.gem  
-				  inflating: reldir-02/gems/rallyeif-wrk-0.5.5.gem  
-				  inflating: reldir-02/gems/rdoc-4.2.0.gem  
-				  inflating: reldir-02/gems/tzinfo-1.2.2.gem  
-				  inflating: reldir-02/gems/xml-simple-1.1.5.gem  
-				  inflating: reldir-02/gems/thread_safe-0.3.5.gem  
-				  inflating: reldir-02/gems/rallyeif-testrail-4.0.0.gem  
-				  inflating: reldir-02/gems/z-uninstall_all.txt  
-				   creating: reldir-02/configs/
-				  inflating: reldir-02/configs/example1-testcase.xml  
-				  inflating: reldir-02/configs/example1-testresult.xml  
-				  inflating: reldir-02/configs/Connections-test.xml  
-				   creating: reldir-02/lib/
-				   creating: reldir-02/lib/testrail-api-master/
-				  inflating: reldir-02/lib/testrail-api-master/license.md  
-				  inflating: reldir-02/lib/testrail-api-master/readme.md  
-				   creating: reldir-02/lib/testrail-api-master/ruby/
-				  inflating: reldir-02/lib/testrail-api-master/ruby/readme.md  
-				  inflating: reldir-02/lib/testrail-api-master/ruby/testrail.rb  
-				  inflating: reldir-02/Gemfile       
-				  inflating: reldir-02/ReadMe.txt    
+                Archive:  reldir-03.zip
+                   creating: reldir-03/
+                   creating: reldir-03/configs/
+                  inflating: reldir-03/configs/Connections-test.xml  
+                  inflating: reldir-03/configs/JP-VCE-demo-testcase.xml  
+                  inflating: reldir-03/configs/JP-VCE-demo-testresult.xml  
+                  inflating: reldir-03/Gemfile       
+                   creating: reldir-03/gems/
+                  inflating: reldir-03/gems/activesupport-4.2.1.gem  
+                  inflating: reldir-03/gems/httpclient-2.4.0.gem  
+                  inflating: reldir-03/gems/i18n-0.7.0.gem  
+                  inflating: reldir-03/gems/mime-types-2.4.3.gem  
+                  inflating: reldir-03/gems/mini_portile-0.6.2.gem  
+                  inflating: reldir-03/gems/minitest-5.5.1.gem  
+                  inflating: reldir-03/gems/multipart-post-2.0.0.gem  
+                  inflating: reldir-03/gems/nokogiri-1.6.6.2.gem  
+                  inflating: reldir-03/gems/rally_api-1.1.2.gem  
+                  inflating: reldir-03/gems/rallyeif-testrail-4.0.0.gem  
+                  inflating: reldir-03/gems/rallyeif-wrk-0.5.5.gem  
+                  inflating: reldir-03/gems/rdoc-4.2.0.gem  
+                  inflating: reldir-03/gems/thread_safe-0.3.5.gem  
+                  inflating: reldir-03/gems/tzinfo-1.2.2.gem  
+                  inflating: reldir-03/gems/xml-simple-1.1.5.gem  
+                  inflating: reldir-03/gems/z-uninstall_all.txt  
+                   creating: reldir-03/lib/
+                   creating: reldir-03/lib/testrail-api-master/
+                  inflating: reldir-03/lib/testrail-api-master/license.md  
+                  inflating: reldir-03/lib/testrail-api-master/readme.md  
+                   creating: reldir-03/lib/testrail-api-master/ruby/
+                  inflating: reldir-03/lib/testrail-api-master/ruby/readme.md  
+                  inflating: reldir-03/lib/testrail-api-master/ruby/testrail.rb  
+                  inflating: reldir-03/lib/testrail-api-master/testrail-api-master.zip  
+                  inflating: reldir-03/ReadMe-Demo.txt  
+                  inflating: reldir-03/ReadMe.txt    
 
-
-    02) Install the GEMs provided with the new Salesforce connector:
-            - Command:
-                $ cd reldir-02/gems
+    02) Install the GEMs provided with the new TestRail connector:
+            - Command (runs about 2 minutes):
+                $ cd reldir-03/gems
                 $ gem install --local *.gem
                 $ cd ../..
             - Output:
@@ -278,8 +252,7 @@ C.) Installation of the TestRail connector GEMs:
                 Done installing documentation for xml-simple after 0 seconds
                 20 gems installed
 
-
-    03) When done, the installed GEMs are:
+    03) When done, the list of installed Ruby GEMs should look like:
             - Command:
                 $ gem list
             - Output:
@@ -314,10 +287,9 @@ C.) Installation of the TestRail connector GEMs:
                 tzinfo (1.2.2)
                 xml-simple (1.1.5)
 
-
     04) Verify the connector was installed:
             - Commands:
-                $ cd reldir-02
+                $ cd reldir-03
                 > rally2_testrail_connector.rb  --version
             - Output:
                 Work Item Connector Hub version 0.5.5-ts3pm2
@@ -340,7 +312,7 @@ D.) Create custom fields in Rally and TestRail:
         Test Case  RallyURL             rallyurl          Url (Link)  Optional
 
 
-E.) Running the TestRail connector:
+E.) Testing the TestRail connector:
     01) Edit a configuration file (such as the "configs/Connections-test.xml"
         provided) and adjust it for your environment.
 
@@ -350,5 +322,9 @@ E.) Running the TestRail connector:
             - Output:
                 The output will be in the file "rallylog.log".
 
+
+F.) Running a simple demo with the TestRail connector:
+    01) See the document "ReadMe-Demo.txt" for an overview of running a more
+        indepth test of the connector.
 
 [the end]
