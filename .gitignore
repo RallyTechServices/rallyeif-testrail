@@ -7,10 +7,10 @@ Gemfile.lock
 LOCK.tmp
 MyVars.rb
 VCE-TestRail-Data
-configs/Encoded-*
+configs/Creds-*
 configs/*time.file
 configs/test-*
-configs/JP-VCE-demo-*
+configs/JP-*
 coverage/
 pkg/
 rake-spec.log

@@ -23,7 +23,8 @@ describe "When trying to update TestRail items" do
     @items_to_remove.push(item)
 
     #2 update ext id
-    new_id_value = 2147483647
+    @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
+    new_id_value = @unique_number
     @connection.update_external_id_fields(item, new_id_value, nil, nil)
     
     #3 verify was placed properly
