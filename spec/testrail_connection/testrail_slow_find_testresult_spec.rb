@@ -13,7 +13,7 @@ describe "When trying to find TestRail test case results" do
 
   before(:each) do
     @connection_testcase = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
-    @unique_number = (Time.now.strftime("%Y%m%d%H%M%S").to_i + Time.now.usec)
+    @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
 
     # Make a "TestResult" connection.
     config_testresult = YetiTestUtils::modify_config_data(

@@ -305,11 +305,12 @@ D.) Create custom fields in Rally and TestRail:
         User Story TestRailPlanID       TestRailPlanID    String      Required
 
     02) The following TestRail custom fields are used by the connector:
-        Object     Label                System Name       Type
-        ---------  -------------------  --------------    ----------  --------
-        Test Case  RallyObjectID        rallyobjectid     Integer     Required
-        Test Case  RallyFormattedID     rallyformattedid  String      Optional
-        Test Case  RallyURL             rallyurl          Url (Link)  Optional
+        Object       Label                System Name       Type
+        -----------  -------------------  --------------    ----------  --------
+        Test Result  RallyObjectID        rallyobjectid     String      Required
+        Test Case    RallyObjectID        rallyobjectid     String      Required
+        Test Case    RallyFormattedID     rallyformattedid  String      Optional
+        Test Case    RallyURL             rallyurl          Url (Link)  Optional
 
 
 E.) Testing the TestRail connector:
