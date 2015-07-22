@@ -17,7 +17,7 @@
         <Project>My-TestRail-Project</Project>
         <User>My-TestRail-Username</User>
         <Password>My-TestRail-Password</Password>
-        <!-- The following TestRail custom field (for TestCases, of type Integer)
+        <!-- The following TestRail custom field (for TestCases, of type String)
              is used to store the Rally ObjectID of the newly created TestCase
              in Rally.
         -->
