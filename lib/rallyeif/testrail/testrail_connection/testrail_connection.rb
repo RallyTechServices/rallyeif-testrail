@@ -648,7 +648,10 @@ module RallyEIF
           RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
         end
      
-        RallyLogger.debug(self, "Found sections: #{returned_artifacts}")
+        RallyLogger.debug(self, "Found '#{returned_artifacts.length}' sections:")
+        returned_artifacts.each do |sect|
+          RallyLogger.debug(self, "    #{sect.select{|x| x!="description"}}") # description is too ugly for log file
+        end
         return returned_artifacts.first || {'id' => -1}
       end      
 #---------------------#
@@ -675,28 +678,6 @@ module RallyEIF
 #---------------------#
       def pre_create(int_work_item)
         return int_work_item
-      end
-#---------------------#
-      def update_internal(artifact, new_fields)
-        #artifact.update_attributes int_work_item
-        case @artifact_type.to_s.downcase
-        when 'testcase'
-          all_fields = artifact
-          all_fields.merge!(new_fields)
-          updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
-
-        when 'testrun'
-          all_fields = artifact
-          all_fields.merge!(new_fields)
-          updated_item = @testrail.send_post("update_run/#{artifact['id']}", all_fields)
-
-        when 'testresult'
-          raise UnrecoverableException.new('Unimplemented logic: update_internal on "testresult"...', self)
-
-        else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
-        end
-        return updated_item
       end
 #---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
@@ -728,6 +709,28 @@ module RallyEIF
         end
         
         updated_item = update_internal(artifact, new_fields)
+        return updated_item
+      end
+#---------------------#
+      def update_internal(artifact, new_fields)
+        #artifact.update_attributes int_work_item
+        case @artifact_type.to_s.downcase
+        when 'testcase'
+          all_fields = artifact
+          all_fields.merge!(new_fields)
+          updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
+
+        when 'testrun'
+          all_fields = artifact
+          all_fields.merge!(new_fields)
+          updated_item = @testrail.send_post("update_run/#{artifact['id']}", all_fields)
+
+        when 'testresult'
+          raise UnrecoverableException.new('Unimplemented logic: update_internal on "testresult"...', self)
+
+        else
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+        end
         return updated_item
       end
 #---------------------#
