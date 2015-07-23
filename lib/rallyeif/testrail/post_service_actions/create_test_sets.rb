@@ -151,10 +151,14 @@ module RallyEIF
           RallyLogger.info(self,"Associate TestResult with the TestSet")
           tr_testresults_list.each do |testresult|
             RallyLogger.debug(self,"testresult: #{testresult}")
-            RallyLogger.debug(self,"test: #{testresult['_test']['run_id']}")
             rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
+            if rally_test_set.nil?
+              RallyLogger.debug(self,"test: <no test set found in Rally>")
+            else
+              RallyLogger.debug(self,"test: #{testresult['_test']['run_id']}")
+            end
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
-            if !rally_result.nil?
+            if !rally_result.nil? && !rally_test_set.nil?
               fields = {"TestSet"=>{'_ref'=>rally_test_set['_ref']}}
               rally_result.update(fields)
             else
