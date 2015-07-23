@@ -80,39 +80,40 @@ def get_projects()
     return all_PROJECTs
 end
 
+
+#---04---#
 def get_desired_proj (dp_name,all_projects)
     target_proj = nil
     all_projects.each do |this_PROJECT|
         if this_PROJECT['name'] == dp_name
-        target_proj = this_PROJECT
+            target_proj = this_PROJECT
         end
     end
     
-    print "\n"
+    print "\n04) Looking for desired project: '#{dp_name}'...\n"
     if target_proj.nil?
         if all_projects.length > 0
             target_proj = all_projects[0]
         else
-            print "exiting...\n"
+            print "ERROR: No projects to search through... exiting...\n"
             exit
         end
-        print "\tCan't find desired project '#{dp_name}'; using project '#{target_proj['name']} (id=#{target_proj['id']})' instead (first project found).\n"
-    else
-        print "\tUsing desired project '#{target_proj['name']} (id=#{target_proj['id']})'.\n"
+        print "\tCan't find desired project '#{dp_name}'; will use first project found instead.\n"
     end
+    print "\tUsing desired project '#{target_proj['name']} (id=#{target_proj['id']})'.\n"
 
     return target_proj
 end
 
 
-#---04---#
+#---05---#
 def get_case_fields()
     # ------------------------------------------------------------------
     # Get test case custom fields.
     #
     uri = 'get_case_fields'
     @tr_case_fields  = @tr_con.send_get(uri)
-    print "\n04) Test case custom fields:\n"
+    print "\n05) Test case custom fields:\n"
     print "\t                                                                             display global/\n"
     print "\tid             name         type_id             system_name            label  _order projIDs\n"
     print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -------\n"
@@ -158,14 +159,14 @@ def get_case_fields()
 end
 
 
-#---05---#
+#---06---#
 def get_result_fields()
     # ------------------------------------------------------------------
     # Get result custom fields.
     #
     uri = 'get_result_fields'
     @tr_result_fields  = @tr_con.send_get(uri)
-    print "\n05) Result custom fields:\n"
+    print "\n06) Result custom fields:\n"
     print "\t                                                                             display global/\n"
     print "\tid             name         type_id             system_name            label  _order projIDs\n"
     print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -------\n"
@@ -211,7 +212,7 @@ def get_result_fields()
 end
 
 
-#---06---#
+#---07---#
 def get_priorities()
     # ------------------------------------------------------------------
     # Get known priorities
@@ -223,7 +224,7 @@ def get_priorities()
         #   "short_name"=>"1 - Don't",
         #   "is_default"=>false,
         #   "priority"  =>1}
-    print "\n06) Known priorities (* = default):\n"
+    print "\n07) Known priorities (* = default):\n"
     print "\t  id  name              short_name    pri\n"
     print "\t  --  ----------------  ------------  ---\n"
     @tr_priorities.sort_by { |rec| rec['id']}.each do |this_PR|
@@ -241,7 +242,7 @@ def get_priorities()
 end
 
 
-#---07---#
+#---08---#
 def get_case_types
     # ------------------------------------------------------------------
     # Get known case types.
@@ -251,7 +252,7 @@ def get_case_types
         #{  "id"=>1,
         #   "name"=>"Automated",
         #   "is_default"=>false}
-    print "\n07) Known test case types (* = default):\n"
+    print "\n08) Known test case types (* = default):\n"
     @tr_case_types.sort_by { |rec| rec['id']}.each do |this_CT|
         if this_CT['is_default'] == true
             prefix = '*'
@@ -263,7 +264,7 @@ def get_case_types
 end
 
 
-#---08---#
+#---09---#
 def get_test_statuses()
     uri = 'get_statuses'
     @tr_test_statuses   = @tr_con.send_get(uri)
@@ -276,7 +277,7 @@ def get_test_statuses()
         #   "is_system"=>true,
         #   "is_untested"=>true,
         #   "is_final"=>false},
-    print "\n08) Known test statuses:\n"
+    print "\n09) Known test statuses:\n"
     print "\t  id  name      label\n"
     print "\t  --  --------  --------\n"
     @tr_test_statuses.each do |this_ST|
@@ -288,11 +289,11 @@ def get_test_statuses()
 end
 
 
-#---09---#
+#---10---#
 def get_cases(target_proj, suite_id:'', section_id:'')
     uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
     all_cases = @tr_con.send_get(uri)
-    print "\n09) Total test cases found: #{all_cases.length}"
+    print "\n10) Total test cases found: #{all_cases.length}"
     if all_cases.length > 0
         all_cases.each_with_index do |item, ndx|
             if ndx == 0
@@ -308,7 +309,7 @@ def get_cases(target_proj, suite_id:'', section_id:'')
 end
 
 
-#---10---#
+#---11---#
 def get_case(case_id:1)
     uri = "get_case/#{case_id}"
     this_case = @tr_con.send_get(uri)
@@ -333,21 +334,21 @@ def get_case(case_id:1)
         # "custom_preconds"         => nil,
         # "custom_steps"            => nil,
         # "custom_expected"         => nil}
-    print "\n10) Test case number '#{case_id}' fields:\n"
-    print "\tord  field name              value\n"
-    print "\t---  ----------------------  --------------------------------------\n"
+    print "\n11) Test case number '#{case_id}' fields:\n"
+    print "\tord  field name                value\n"
+    print "\t---  ------------------------  --------------------------------------\n"
     this_case.each_with_index do |keyval, ndx|
         key = keyval[0]
         val = keyval[1]
         # Deal with dates:
         val = "#{val} (#{Time.at(val)})" if key == 'created_on'
         val = "#{val} (#{Time.at(val)})" if key == 'updated_on'
-        print "\t%3d  %-22s  %s\n"%[ndx+1,key,val]
+        print "\t%3d  %-24s  %s\n"%[ndx+1,key,val]
     end
 end
 
 
-#---11---#
+#---12---#
 def get_plans(target_proj)
     uri = "get_plans/#{target_proj['id']}"
     all_plans = @tr_con.send_get(uri)
@@ -374,7 +375,7 @@ def get_plans(target_proj)
         #   "created_on"                =>  1437160164,
         #   "created_by"                =>  1,
         #   "url"                       =>  "https://somewhere.testrail.com/index.php?/plans/view/144"}
-    print "\n11) Found '#{all_plans.length}' Plans for project '#{target_proj['id']}':\n"
+    print "\n12) Found '#{all_plans.length}' Plans for project '#{target_proj['id']}':\n"
     all_plans.each_with_index do |item,ndx|
         if ndx == 0
             print "\tid   name                                                    created_on\n"
@@ -389,7 +390,7 @@ def get_plans(target_proj)
 end
 
 
-#---12---#
+#---13---#
 def get_runs(target_proj)
     uri = "get_runs/#{target_proj['id']}"
     all_runs = @tr_con.send_get(uri)
@@ -421,7 +422,7 @@ def get_runs(target_proj)
         #  "created_on"             => 1417639979,
         #  "created_by"             => 1,
         #  "url"                    => "https://somewhere.testrail.com/index.php?/runs/view/1"}]
-    print "\n12) Found '#{all_runs.length}' Runs for project '#{target_proj['id']}':\n"
+    print "\n13) Found '#{all_runs.length}' Runs for project '#{target_proj['id']}':\n"
     all_runs.each_with_index do |item,ndx|
         if ndx == 0
             print "\t                                               project\n"
@@ -438,7 +439,7 @@ def get_runs(target_proj)
 end
 
 
-#---13---#
+#---14---#
 def get_results(test_id: 6)
     uri = "get_results/#{test_id}"
     all_results = @tr_con.send_get(uri)
@@ -453,7 +454,7 @@ def get_results(test_id: 6)
         # "elapsed"                 => "1m 23s",
         # "defects"                 => nil,
         # "custom_rallyobjectid"    => nil}
-    print "\n13) Found '#{all_results.length}' Results for Test Id '#{test_id}':\n"
+    print "\n14) Found '#{all_results.length}' Results for Test Id '#{test_id}':\n"
     print "\tid  test_id  status_id  created_on                              custom_rallyobjectid\n"
     print "\t--  -------  ---------  --------------------------------------  --------------------\n"
     all_results.each do |item|
@@ -472,7 +473,7 @@ end
 
 get_testrail_connection()
 all_projects = get_projects()
-target_proj = get_desired_proj('JP-VCE-demo', all_projects)
+target_proj = get_desired_proj('JP-VCE-3', all_projects)
 get_case_fields()
 get_result_fields()
 get_priorities()
