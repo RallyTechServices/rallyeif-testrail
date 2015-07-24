@@ -138,6 +138,7 @@ else
                     print "#{plan[rn]}"
                 end
                 print "\n"
+                print "\t\t\t\tconfig_ids=#{run['config_ids']}\n"
             end
         end
     end
