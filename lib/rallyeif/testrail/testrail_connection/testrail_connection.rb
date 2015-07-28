@@ -510,7 +510,7 @@ module RallyEIF
       
       def find_test_for_run(run_id)
         tests = []
-          
+        RallyLogger.info(self, "Doing send_get 'get_tests/#{run_id}'")
         begin
           tests = @testrail.send_get("get_tests/#{run_id}")
         rescue Exception => ex
