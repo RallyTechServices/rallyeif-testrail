@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require './lib/testrail-api-master/ruby/testrail.rb'
+require '../lib/testrail-api-master/ruby/testrail.rb'
 
 $my_testrail_url        = 'https://somewhere.testrail.com'
 $my_testrail_user       = 'user@company.com'
@@ -16,6 +16,9 @@ if FileTest.exist?( my_vars )
 else
     print "File #{my_vars} not found; skipping require...\n"
 end
+
+
+@all_PROJECT = nil
 
 
 #---01---#
@@ -44,40 +47,33 @@ end
 #---03---#
 def get_projects()
     uri = 'get_projects'
-    all_PROJECTs = @tr_con.send_get(uri)
-        #{  "id"                => 16,
-        #   "name"              => "zCompleted-Project",
-        #   "announcement"      => "Testing by JP",
-        #   "show_announcement" => false,
-        #   "is_completed"      => true,
-        #   "completed_on"      => 1436993980,
-        #   "suite_mode"        => 3,
-        #   "url"               => "https://somewhere.testrail.com/index.php?/projects/overview/16"},
-    print "\n03) Total Projects found: '#{all_PROJECTs.length}'\n"
-    if all_PROJECTs.length > 0
+    all_projects = @tr_con.send_get(uri)
+    print "\n03) Total Projects found: '#{all_projects.length}'\n"
+    if all_projects.length > 0
+        @suites = Hash.new
         print "\tid   name                  suite_mode  is_completed  completed_on\n"
         print "\t---  --------------------  ----------  ------------  --------------------------------------\n"
-        all_PROJECTs.each do |item|
+        all_projects.each do |item|
             print "\t%3d"   %   [item['id']]
             print "  %-20s" %   [item['name']]
             print "  %-10d" %   [item['suite_mode']]
             print "  %-12s" %   [item['is_completed']]
             print "  %s"    %   [item['completed_on']]
             if !item['completed_on'].nil?
-            print " (%s)"       %   [Time.at(item['completed_on'])]
+                print " (%s)"       %   [Time.at(item['completed_on'])]
             end
             print "\n"
             if item['suite_mode'] == 3
-                returned_suites = @tr_con.send_get("get_suites/#{item['id']}")
-                print "\t\tFound '#{returned_suites.length}' suites in above project:\n"
-                returned_suites.each do |sweet|
+                @suites[item['id']] = @tr_con.send_get("get_suites/#{item['id']}").to_a
+                print "\t\tFound '#{@suites[item['id']].length}' suites in above project:\n"
+                @suites[item['id']].each do |sweet|
                     print "\t\t\tsuite id=#{sweet['id']}, name=#{sweet['name']}\n"
                 end
             end
         print "\t---  --------------------  ----------  ------------  --------------------------------------\n"
         end
     end
-    return all_PROJECTs
+    return all_projects
 end
 
 
@@ -115,8 +111,8 @@ def get_case_fields()
     @tr_case_fields  = @tr_con.send_get(uri)
     print "\n05) Test case custom fields:\n"
     print "\t                                                                             display global/\n"
-    print "\tid             name         type_id             system_name            label  _order projIDs\n"
-    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -------\n"
+    print "\tid             name         type_id             system_name            label  _order     projIDs\n"
+    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -----------\n"
 
     cf_types = ['',             # 0
                 'String',       # 1
@@ -290,22 +286,43 @@ end
 
 
 #---10---#
-def get_cases(target_proj, suite_id:'', section_id:'')
-    uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
-    all_cases = @tr_con.send_get(uri)
-    print "\n10) Total test cases found: #{all_cases.length}"
-    if all_cases.length > 0
-        all_cases.each_with_index do |item, ndx|
-            if ndx == 0
-                print "  ("
-            else
-                print "," if ndx != all_cases.length
-            end
-            print "#{item['id']}"
+def get_cases(target_proj, section_id:'')
+    suite_list = Array.new
+    uri = "get_cases/#{target_proj['id']}&suite_id="
+    case target_proj['suite_mode']
+    when 1
+        suite_list = ['']
+    when 2
+        puts 'ERROR: suite_mode 2 is not yet implemented'
+        exit -1
+    when 3
+        @suites[target_proj['id']].each do |suite|
+            suite_list.push(suite['id'])
         end
+    else
+        puts 'ERROR: suite_mode is not 1, 2 or 3'
+        exit -1
     end
-    print ")\n"
-    return all_cases.last
+    print "\n10) Find all cases in all suites (#{suite_list})\n"
+    all_cases = Array.new
+    suite_list.each do |suite_id|
+        uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
+        cases = @tr_con.send_get(uri)
+        print "\ttest cases found (#{suite_id}): #{cases.length}\n"
+        if cases.length > 0
+            cases.each_with_index do |item, ndx|
+                if ndx == 0
+                    print "\t\t("
+                else
+                    print "," if ndx != cases.length
+                end
+                print "#{item['id']}"
+            end
+        end
+        print ")\n"
+        all_cases.concat cases
+    end
+    return all_cases
 end
 
 
@@ -351,32 +368,9 @@ end
 #---12---#
 def get_plans(target_proj)
     uri = "get_plans/#{target_proj['id']}"
-    all_plans = @tr_con.send_get(uri)
-        #{  "id"                        =>  144,
-        #   "name"                      =>  "VCE-TP-01: JP test VCE demo - v1 - 20-Jul-2015, 8:47am",
-        #   "description"               =>  nil,
-        #   "milestone_id"              =>  nil,
-        #   "assignedto_id"             =>  nil,
-        #   "is_completed"              =>  false,
-        #   "completed_on"              =>  nil,
-        #   "passed_count"              =>  1,
-        #   "blocked_count"             =>  0,
-        #   "untested_count"            =>  0,
-        #   "retest_count"              =>  0,
-        #   "failed_count"              =>  1,
-        #   "custom_status1_count"      =>  0,
-        #   "custom_status2_count"      =>  0,
-        #   "custom_status3_count"      =>  0,
-        #   "custom_status4_count"      =>  0,
-        #   "custom_status5_count"      =>  0,
-        #   "custom_status6_count"      =>  0,
-        #   "custom_status7_count"      =>  0,
-        #   "project_id"                =>  19,
-        #   "created_on"                =>  1437160164,
-        #   "created_by"                =>  1,
-        #   "url"                       =>  "https://somewhere.testrail.com/index.php?/plans/view/144"}
-    print "\n12) Found '#{all_plans.length}' Plans for project '#{target_proj['id']}':\n"
-    all_plans.each_with_index do |item,ndx|
+    @all_plans = @tr_con.send_get(uri)
+    print "\n12) Found '#{@all_plans.length}' Plans for project '#{target_proj['id']}':\n"
+    @all_plans.each_with_index do |item,ndx|
         if ndx == 0
             print "\tid   name                                                    created_on\n"
             print "\t---  ------------------------------------------------------  --------------------------------------\n"
@@ -386,43 +380,15 @@ def get_plans(target_proj)
         print "  %10d (#{Time.at(item['created_on'])})"%[item['created_on']]
         print "\n"
     end
-    return all_plans.last
+    return
 end
 
 
 #---13---#
-def get_runs(target_proj)
+def get_runs_not_in_plan(target_proj)
     uri = "get_runs/#{target_proj['id']}"
     all_runs = @tr_con.send_get(uri)
-        #[{"id"                     => 1,
-        #  "suite_id"               => 1,
-        #  "name"                   => "Test Run 01 - 12/3/2014",
-        #  "description"            => "This is a ....",
-        #  "milestone_id"           => 1,
-        #  "assignedto_id"          => 1,
-        #  "include_all"            => true,
-        #  "is_completed"           => false,
-        #  "completed_on"           => nil,
-        #  "config"                 => nil,
-        #  "config_ids"             => [],
-        #  "passed_count"           => 0,
-        #  "blocked_count"          => 0,
-        #  "untested_count"         => 16,
-        #  "retest_count"           => 0,
-        #  "failed_count"           => 0,
-        #  "custom_status1_count"   => 0,
-        #  "custom_status2_count"   => 0,
-        #  "custom_status3_count"   => 0,
-        #  "custom_status4_count"   => 0,
-        #  "custom_status5_count"   => 0,
-        #  "custom_status6_count"   => 0,
-        #  "custom_status7_count"   => 0,
-        #  "project_id"             => 1,
-        #  "plan_id"                => nil,
-        #  "created_on"             => 1417639979,
-        #  "created_by"             => 1,
-        #  "url"                    => "https://somewhere.testrail.com/index.php?/runs/view/1"}]
-    print "\n13) Found '#{all_runs.length}' Runs for project '#{target_proj['id']}':\n"
+    print "\n13) Found '#{all_runs.length}' Runs for project '#{target_proj['id']}' which are not in a testplan:\n"
     all_runs.each_with_index do |item,ndx|
         if ndx == 0
             print "\t                                               project\n"
@@ -440,21 +406,111 @@ end
 
 
 #---14---#
+def get_runs_in_plans(target_proj)
+    uri = "get_plans/#{target_proj['id']}"
+    all_plans = @tr_con.send_get(uri)
+#require 'pry';binding.pry
+        # Returns plans; a plan:
+		#		{"id"=>192,
+		#		 "name"=>"Test Plan Beta (for 2nd Rally Story, but nil now)",
+		#		 "description"=>nil,
+		#		 "milestone_id"=>nil,
+		#		 "assignedto_id"=>nil,
+		#		 "is_completed"=>false,
+		#		 "completed_on"=>nil,
+		#		 "passed_count"=>1,
+		#		 "blocked_count"=>1,
+		#		 "untested_count"=>1,
+		#		 "retest_count"=>0,
+		#		 "failed_count"=>0,
+		#		 "custom_status1_count"=>0,
+		#		 "custom_status2_count"=>0,
+		#		 "custom_status3_count"=>0,
+		#		 "custom_status4_count"=>0,
+		#		 "custom_status5_count"=>0,
+		#		 "custom_status6_count"=>0,
+		#		 "custom_status7_count"=>0,
+		#		 "project_id"=>26,
+		#		 "created_on"=>1437573544,
+		#		 "created_by"=>1,
+		#		 "url"=>"https://somewhere.testrail.com/index.php?/plans/view/192"}
+    print "\n14) Find all runs in the '#{all_plans.length}' plans for project '#{target_proj['id']}':\n"
+    all_plans.each do |plan|
+        print "\tPlan id='#{plan['id']}'  name='#{plan['name']}'\n"
+        uri = "get_plan/#{plan['id']}"
+        plan = @tr_con.send_get(uri)
+            # Returns a plan:
+		    #		{"id"=>193,
+		    #		 "name"=>"Test Plan Gamma (for 3rd Rally Story, but nil now)",
+		    #		 "description"=>nil,
+		    #		 "milestone_id"=>nil,
+		    #		 "assignedto_id"=>nil,
+		    #		 "is_completed"=>false,
+		    #		 "completed_on"=>nil,
+		    #		 "passed_count"=>1,
+		    #		 "blocked_count"=>1,
+		    #		 "untested_count"=>1,
+		    #		 "retest_count"=>1,
+		    #		 "failed_count"=>1,
+		    #		 "custom_status1_count"=>1,
+		    #		 "custom_status2_count"=>0,
+		    #		 "custom_status3_count"=>0,
+		    #		 "custom_status4_count"=>0,
+		    #		 "custom_status5_count"=>0,
+		    #		 "custom_status6_count"=>0,
+		    #		 "custom_status7_count"=>0,
+		    #		 "project_id"=>26,
+		    #		 "created_on"=>1437573585,
+		    #		 "created_by"=>1,
+		    #		 "url"=>"https://somewhere.testrail.com/index.php?/plans/view/193",
+		    #		 "entries"=>
+		    #		  [{"id"=>"4065784c-d591-4f56-8461-6ac41513abeb",
+		    #		    "suite_id"=>26,
+		    #		    "name"=>"Test Run 1 - Gamma",
+		    #		    "runs"=>
+		    #		     [{"id"=>194,
+		    #		       "suite_id"=>26,
+		    #		       "name"=>"Test Run 1 - Gamma",
+		    #		       "description"=>nil,
+		    #		       "milestone_id"=>nil,
+		    #		       "assignedto_id"=>nil,
+		    #		       "include_all"=>false,
+		    #		       "is_completed"=>false,
+		    #		       "completed_on"=>nil,
+		    #		       "passed_count"=>1,
+		    #		       "blocked_count"=>1,
+		    #		       "untested_count"=>1,
+		    #		       "retest_count"=>1,
+		    #		       "failed_count"=>1,
+		    #		       "custom_status1_count"=>1,
+		    #		       "custom_status2_count"=>0,
+		    #		       "custom_status3_count"=>0,
+		    #		       "custom_status4_count"=>0,
+		    #		       "custom_status5_count"=>0,
+		    #		       "custom_status6_count"=>0,
+		    #		       "custom_status7_count"=>0,
+		    #		       "project_id"=>26,
+		    #		       "plan_id"=>193,
+		    #		       "entry_index"=>1,
+		    #		       "entry_id"=>"4065784c-d591-4f56-8461-6ac41513abeb",
+		    #		       "config"=>nil,
+		    #		       "config_ids"=>[],
+		    #		       "url"=>"https://somewhere.testrail.com/index.php?/runs/view/194"}]}]}
+#require 'pry';binding.pry
+        print "\t\tfound '#{plan['entries'].length}' test runs:\n"
+        plan['entries'].each do |e|
+            print "\t\tRun id='#{e['id']}'  name='#{e['name']}'  config_ids='#{e['config_ids']}'\n"
+        end
+    end
+    return
+end
+
+
+#---15---#
 def get_results(test_id: 6)
     uri = "get_results/#{test_id}"
     all_results = @tr_con.send_get(uri)
-        #{"id"                      => 79,
-        # "test_id"                 => 6,
-        # "status_id"               => 1,
-        # "created_by"              => 1,
-        # "created_on"              => 1420833528,
-        # "assignedto_id"           => 1,
-        # "comment"                 => "JP testing",
-        # "version"                 => "3.14",
-        # "elapsed"                 => "1m 23s",
-        # "defects"                 => nil,
-        # "custom_rallyobjectid"    => nil}
-    print "\n14) Found '#{all_results.length}' Results for Test Id '#{test_id}':\n"
+    print "\n15) Found '#{all_results.length}' Results for Test Id '#{test_id}':\n"
     print "\tid  test_id  status_id  created_on                              custom_rallyobjectid\n"
     print "\t--  -------  ---------  --------------------------------------  --------------------\n"
     all_results.each do |item|
@@ -473,7 +529,9 @@ end
 
 get_testrail_connection()
 all_projects = get_projects()
-target_proj = get_desired_proj('JP-VCE-3', all_projects)
+dp='JP-VCE-3'
+dp='Test-Proj-sm3'
+target_proj = get_desired_proj(dp,all_projects)
 get_case_fields()
 get_result_fields()
 get_priorities()
@@ -481,10 +539,11 @@ get_case_types()
 get_test_statuses()
 lc = get_cases(target_proj)
 if !lc.nil?
-    get_case(case_id:lc['id'])
+    get_case(case_id:lc[0]['id'])
 end
 get_plans(target_proj)
-get_runs(target_proj)
+get_runs_not_in_plan(target_proj)
+get_runs_in_plans(target_proj)
 get_results()
 
 exit
