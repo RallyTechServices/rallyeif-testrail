@@ -6,7 +6,8 @@ include YetiTestUtils
 
 ##
 ## NOTE
-## These tests work because we create test runs that default to containing tests for all existing test cases
+## These tests work because we create test runs
+## which default to containing tests for all existing test cases
 ##
 
 describe "When trying to find TestRail test case results" do
@@ -69,13 +70,14 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase.push(testcase)
       
     # 3 - Create a Run
-    testrun,run_id = create_testrail_artifact(@connection_testrun, { "include_all" => true })
+    extra_fields = { 'include_all' => true, 'suite_id' => testcase['suite_id'] }
+    testrun,run_id = create_testrail_artifact(@connection_testrun, extra_fields)
     @connection_testrun.update_external_id_fields(testrun, @unique_number , nil, nil)
     @items_to_remove_testrun.push(testrun)
     
     # 4 - Create a TestResult
-    testresult,testresult_id = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id,
-                                                                                 'case_id' => testcase['id']})
+    extra_fields = { 'run_id'  => run_id, 'case_id' => testcase['id'] }
+    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
     # 5 - Find all 'new' results again
@@ -85,38 +87,43 @@ describe "When trying to find TestRail test case results" do
     expect(all_items_after.length).to eq(all_items_before.length + 1)
   end
 
-  it "(1a), should find new results multiple test cases" do
+  it "(2), should find new results multiple test cases" do
     
     # 1 - Find all 'new' Results
     all_items_before = @connection_testresult.find_new()
     
     # 2 - Create 2 TestCases
-    testcase,title = create_testrail_artifact(@connection_testcase)
-    @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
-    @items_to_remove_testcase.push(testcase)
+    testcase1,title1 = create_testrail_artifact(@connection_testcase)
+    @connection_testcase.update_external_id_fields(testcase1, @unique_number , nil, nil)
+    @items_to_remove_testcase.push(testcase1)
     
     testcase2,title2 = create_testrail_artifact(@connection_testcase)
     @connection_testcase.update_external_id_fields(testcase2, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase2)
           
     # 3 - Create 2 runs
-    run,run_id = create_testrail_artifact(@connection_testrun, { "include_all" => true })
-    @connection_testrun.update_external_id_fields(run, @unique_number , nil, nil)
-    @items_to_remove_testrun.push(run)
+    extra_fields = { 'include_all' => true, 'suite_id' => testcase1['suite_id'] }
+    run1,run_id1 = create_testrail_artifact(@connection_testrun, extra_fields)
+    @connection_testrun.update_external_id_fields(run1, @unique_number , nil, nil)
+    @items_to_remove_testrun.push(run1)
     
-    run2,run_id2 = create_testrail_artifact(@connection_testrun, { "include_all" => true })
+    extra_fields = { 'include_all' => true, 'suite_id' => testcase2['suite_id'] }
+    run2,run_id2 = create_testrail_artifact(@connection_testrun, extra_fields)
     @connection_testrun.update_external_id_fields(run2, @unique_number , nil, nil)
     @items_to_remove_testrun.push(run2)
         
     # 4 - Create 3 TestResults
-    result,testresult_id = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id,'case_id' => testcase['id']})
-    @items_to_remove_testresult.push(result)
+    extra_fields = { 'run_id' => run_id1, 'case_id' => testcase1['id'] }
+    result1,testresult_id1 = create_testrail_artifact(@connection_testresult, extra_fields)
+    @items_to_remove_testresult.push(result1)
     
-    result2,testresult_id2 = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id, 'case_id' => testcase2['id']})
+    extra_fields = { 'run_id' => run_id1, 'case_id' => testcase2['id'] }
+    result2,testresult_id2 = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(result2)
     
-    result2,testresult_id2 = create_testrail_artifact(@connection_testresult, {'run_id'  => run_id2, 'case_id' => testcase2['id']})
-    @items_to_remove_testresult.push(result2)
+    extra_fields = { 'run_id' => run_id2, 'case_id' => testcase2['id'] }
+    result3,testresult_id3 = create_testrail_artifact(@connection_testresult, extra_fields)
+    @items_to_remove_testresult.push(result3)
     
     # 5 - Find all 'new' results again
     all_items_after = @connection_testresult.find_new()
@@ -126,7 +133,7 @@ describe "When trying to find TestRail test case results" do
   end
   
   
-  it "(1c), should find a Result from a run inside a test plan" do
+  it "(3), should find a Result from a run inside a test plan" do
     
     # 1 - Find all 'new' Results
     all_items_before = @connection_testresult.find_new()
@@ -142,17 +149,15 @@ describe "When trying to find TestRail test case results" do
       
     # Create a run in the plan
     projid = @connection_testplan.tr_project['id']
-    #suids = @connection_testplan.get_suite_ids(@connection_testcase,projid)
- #require 'pry';binding.pry
     suids = @connection_testplan.all_suites
-    #print "debug: suids.length=#{suids.length}   suids[0]['id']=#{suids[0]['id']}   suids=#{suids}\n"
     updated_plan = @connection_testplan.add_run_to_plan({ 'suite_id' => suids[0]['id'] },testplan)
     
     runs = updated_plan['runs']
     run = runs[0]
     
     # 4 - Create a TestResult
-    testresult,testresult_id = create_testrail_artifact(@connection_testresult, {'run_id'  => run['id'], 'case_id' => testcase['id']})
+    extra_fields = { 'run_id' => run['id'], 'case_id' => testcase['id'] }
+    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
     # 5 - Find all 'new' results again
@@ -163,7 +168,7 @@ describe "When trying to find TestRail test case results" do
   end
   
   
-  it "(2), should NOT find a result that has a test case without an external ID" do
+  it "(4), should NOT find a result that has a test case without an external ID" do
 
     # 1 - Find all 'new' TestResults.
     all_items_before = @connection_testresult.find_new()
@@ -173,7 +178,8 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testcase.push(testcase)
    
     # 3 - Create a TestRun.
-    testrun,run_id = create_testrail_artifact(@connection_testrun, { "include_all" => true })
+    extra_fields = { 'include_all' => true, 'suite_id' => testcase['suite_id'] }
+    testrun,run_id = create_testrail_artifact(@connection_testrun, extra_fields)
     @connection_testrun.update_external_id_fields(testrun, @unique_number , nil, nil)
     @items_to_remove_testrun.push(testrun)
     
@@ -189,7 +195,7 @@ describe "When trying to find TestRail test case results" do
     expect(all_items_after.length).to eq(all_items_before.length)
   end
 
-  it "(3), should raise an exception when trying to find update on a test result (only do new) " do
+  it "(5), should raise an exception when trying to find update on a test result (only do new) " do
     # we want to only do updates because we cannot set the external ID on a test result
     
     # 1 - Find all 'new' Results
