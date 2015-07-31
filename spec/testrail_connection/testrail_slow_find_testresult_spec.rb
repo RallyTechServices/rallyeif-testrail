@@ -142,7 +142,9 @@ describe "When trying to find TestRail test case results" do
       
     # Create a run in the plan
     projid = @connection_testplan.tr_project['id']
-    suids = @connection_testplan.get_suite_ids(@connection_testcase,projid)
+    #suids = @connection_testplan.get_suite_ids(@connection_testcase,projid)
+ #require 'pry';binding.pry
+    suids = @connection_testplan.all_suites
     #print "debug: suids.length=#{suids.length}   suids[0]['id']=#{suids[0]['id']}   suids=#{suids}\n"
     updated_plan = @connection_testplan.add_run_to_plan({ 'suite_id' => suids[0]['id'] },testplan)
     
