@@ -529,8 +529,9 @@ end
 
 get_testrail_connection()
 all_projects = get_projects()
-dp='JP-VCE-3'
 dp='Test-Proj-sm3'
+dp='zJP-Proj-1'
+dp='JP-VCE-3'
 target_proj = get_desired_proj(dp,all_projects)
 get_case_fields()
 get_result_fields()
