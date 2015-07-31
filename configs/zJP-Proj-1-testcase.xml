@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!DOCTYPE config SYSTEM "config.dtd" [
+<!ENTITY Creds-Rally    SYSTEM "configs/Creds-zJP-Proj-1-Rally.xml">
+<!ENTITY Creds-TestRail SYSTEM "configs/Creds-zJP-Proj-1-TestRail.xml">
+]>
+<config>
+    <RallyConnection>
+        &Creds-Rally;
+        <ArtifactType>TestCase</ArtifactType>
+
+   <!-- The following is the name of the Rally custom field on a TestCase which
+        will be used by the connector to store the TestRail TestCase ID number
+        of the linked TestCase -->
+        <ExternalIDField>ExternalID</ExternalIDField>
+
+    </RallyConnection>
+
+    <TestRailConnection>
+        &Creds-TestRail;
+        <ArtifactType>TestCase</ArtifactType>
+
+   <!-- The following is the name of the TestRail custom field (for TestCases,
+        of type String) which will be used by the connector to store the
+        Rally ObjectID of the newly created Rally TestCase -->
+        <ExternalIDField>RallyObjectID</ExternalIDField>
+
+   <!-- Optional: The following is the name of the TestRail custom field
+        on a TestCase which will be used by the connector to store the
+        Rally FormattedID of the Rally TestCase -->
+        <ExternalEndUserIDField>RallyFormattedID</ExternalEndUserIDField>
+
+   <!-- Optional: The following is the name of the TestRail custom field .... -->
+        <CrosslinkUrlField>RallyUrl</CrosslinkUrlField>
+
+   <!-- The following is the name of the Rally custom field (for User Stories,
+        of type String) which will be used by the connector to store the
+        TestRail PlanID number of the TestRail Plan which is to be associated
+        with the Rally UserStory (like "144", etc) -->
+        <RallyStoryFieldForPlanID>ExternalID</RallyStoryFieldForPlanID>
+
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Name</Rally><Other>Title</Other></Field>
+        </FieldMapping>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+        <PostServiceActions>
+
+       <!-- Pick one of the following two <PostServiceActions> verbs (methods): -->
+
+       <!-- Method 1 of 2:
+            The following verb is used to tell the connector to associate Rally
+            UserStories with TestCases that are in a TestRail TestPlan, where
+            the TestRail TestPlan name starts with the Rally UserStory
+            Formatted ID -->
+       <!-- <AssociateWithStoryByName/> -->    <!-- Method 1 of 2 -->
+
+       <!-- Method 2 of 2:
+            The following verb is used to tell the connector to associate Rally
+            UserStories with TestCases that are in a TestRail TestPlan, where
+            the TestRail TestPlan ID number is stored (manually written into)
+            the Rally UserStory.
+            [Note: this method REQUIRES the <RallyStoryFieldForPlanID> be set
+            in the <TestRailConnection> section above] -->
+            <AssociateWithStoryByRallyField/>  <!-- Method 2 of 2 -->
+        </PostServiceActions>
+    </ConnectorRunner>
+</config>

@@ -5,7 +5,6 @@
 Gemfile
 Gemfile.lock
 LOCK.tmp
-MyVars.rb
 VCE-TestRail-Data
 configs/Creds-*
 configs/*time.file
@@ -16,7 +15,8 @@ pkg/
 rake-spec.log
 rallylog.log*
 reldir*
-show-test-case.vars.rb
+tools/*.vars.rb
+tools/MyVars.rb
+tools/create-1pr-*
 test_configuration_helper.rb
-create-1pr-*
 For-JohnM*
