@@ -10,51 +10,17 @@
 #               Section1a
 #                   Testcase1a-1
 #                   Testcase1a-2
-#                   Testcase1a-3
-#                   Testcase1a-4
 #               Section1b
 #                   Testcase1b-1
 #                   Testcase1b-2
-#                   Testcase1a-3
-#                   Testcase1a-4
 #           Suite2
 #               Section2a
 #                   Testcase2a-1
 #                   Testcase2a-2
-#                   Testcase2a-3
-#                   Testcase2a-4
 #               Section2b
 #                   Testcase2b-1
 #                   Testcase2b-2
-#                   Testcase2b-3
-#                   Testcase2b-4
-#           Suite3
-#               Section3a
-#                   Testcase3a-1
-#                   Testcase3a-2
-#                   Testcase3a-3
-#                   Testcase3a-4
-#               Section3b
-#                   Testcase3b-1
-#                   Testcase3b-2
-#                   Testcase3b-3
-#                   Testcase3b-4
-#           Suite4
-#               Section4a
-#                   Testcase4a-1
-#                   Testcase4a-2
-#                   Testcase4a-3
-#                   Testcase4a-4
-#               Section4b
-#                   Testcase4b-1
-#                   Testcase4b-2
-#                   Testcase4b-3
-#                   Testcase4b-4
-#           
 # ============================================================================ #
-
-#require 'pry';binding.pry
-
 
 $my_testrail_url        = 'https://somewhere.testrail.com'
 $my_testrail_user       = 'user@company.com'
@@ -182,39 +148,10 @@ end
 
 
 # ------------------------------------------------------------------------------
-# Create a number of new TestRail sections in the first suite.
-#
-def create_sections(sec_count)
-    print "\n05a) Creating '#{sec_count}' sections; project='#{@new_project['name']}'  suite_id='#{@all_suite_ids[0]}'\n"
-    @all_section_ids = Array.new
-    uri    = "add_section/#{@new_project['id']}"
-    fields = {  'description'   => 'New JPKole section.',
-                'suite_id'      => @all_suite_ids[0],
-                'parent_id'     => nil,
-                'name'          => "New JPKole section 'X' of 'Y'."}
-    (1..sec_count).each do |ord|
-        fields['name'] = "New JPKole section #{ord} of #{sec_count}"
-        new_section = @tr_con.send_post(uri, fields)
-            # Returns:
-			#		{"id"=>2412,
-			#		 "suite_id"=>101,
-			#		 "name"=>"name: New section created by JPKole util.",
-			#		 "description"=>"description: New section created by JPKole util.",
-			#		 "parent_id"=>nil,
-			#		 "display_order"=>1,
-			#		 "depth"=>0}
-        print "\tid:'#{new_section['id']}'  name:'#{new_section['name']}'\n"
-        @all_section_ids.push(new_section['id'])
-    end
-    return
-end
-
-
-# ------------------------------------------------------------------------------
 # Create a number of new TestRail sections in each suite.
 #
 def create_suite_sections(sections_per_suite)
-    print "\n05b) Creating '#{sections_per_suite}' sections in each of '#{@all_suite_ids}' suites\n"
+    print "\n05) Creating '#{sections_per_suite}' sections in each of the '#{@all_suite_ids.length}' suites #{@all_suite_ids}\n"
     @all_section_ids = Array.new
     uri    = "add_section/#{@new_project['id']}"
     fields = {  'description'   => "JPKole's new section; 'x' of 'y' in suite '#{}'",
@@ -227,6 +164,14 @@ def create_suite_sections(sections_per_suite)
             fields['suite_id'] = item
             begin
                 new_section = @tr_con.send_post(uri, fields)
+                # Returns:
+			    #		{"id"=>2412,
+			    #		 "suite_id"=>101,
+			    #		 "name"=>"name: New section created by JPKole util.",
+			    #		 "description"=>"description: New section created by JPKole util.",
+			    #		 "parent_id"=>nil,
+			    #		 "display_order"=>1,
+			    #		 "depth"=>0}
             rescue Exception => ex
                 print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
                 print "\t#{ex.message}\n"
@@ -241,54 +186,10 @@ end
 
 
 # ------------------------------------------------------------------------------
-# Create a number of new TestRail testcases.
-#
-def create_testcases(tc_count)
-    print "\n06a) Creating '#{tc_count}' test cases; section='#{@all_section_ids[0]}'\n"
-    @all_case_ids = Array.new
-    uri    = "add_case/#{@all_section_ids[0]}"
-    fields = {  'title'         => "JPKole's new test case; 'x' of 'y'",
-                'type_id'       => 6,   # 6=Other
-                'priority_id'   => 4,   # 4=Must test
-                'estimate'      => '30s',
-                'milestone_id'  => nil,
-                'refs'          => nil}
-    (1..tc_count).each do |ord|
-        fields['title'] = "JPKole's new test case; #{ord} of #{tc_count}"
-        new_case = @tr_con.send_post(uri, fields)
-            # Returns a new case:
-			#		{"id"=>15191,
-			#		 "title"=>"title: Jpkole's new test case.",
-			#		 "section_id"=>2397,
-			#		 "type_id"=>6,
-			#		 "priority_id"=>4,
-			#		 "milestone_id"=>nil,
-			#		 "refs"=>nil,
-			#		 "created_by"=>1,
-			#		 "created_on"=>1438201297,
-			#		 "updated_by"=>1,
-			#		 "updated_on"=>1438201297,
-			#		 "estimate"=>"30s",
-			#		 "estimate_forecast"=>nil,
-			#		 "suite_id"=>75,
-			#		 "custom_rallyurl"=>nil,
-			#		 "custom_rallyformattedid"=>nil,
-			#		 "custom_rallyobjectid"=>nil,
-			#		 "custom_preconds"=>nil,
-			#		 "custom_steps"=>nil,
-			#		 "custom_expected"=>nil}
-        print "\tid:'#{new_case['id']}'  section_id:'#{new_case['section_id']}' title:'#{new_case['title']}'\n"
-        @all_case_ids.push(new_case['id'])
-    end
-    return
-end
-
-
-# ------------------------------------------------------------------------------
 # Create a number of new TestRail testcases in each section.
 #
 def create_section_testcases(tc_per_sec)
-    print "\n06b) Creating '#{tc_per_sec}' test cases in each of '#{@all_section_ids.length}' sections:\n"
+    print "\n06) Creating '#{tc_per_sec}' test cases in each of the '#{@all_section_ids.length}' sections #{@all_section_ids}\n"
     @all_case_ids = Array.new
     fields = {  'title'         => "JPKole's new test case; 'X' of 'Y' in section 'Z'",
                 'type_id'       => 6,   # 6=Other
@@ -302,6 +203,27 @@ def create_section_testcases(tc_per_sec)
             fields['title'] = "JPKole's new test case; #{ord} of #{tc_per_sec} in section #{section_id}"
             begin
                 new_case = @tr_con.send_post(uri, fields)
+                # Returns a new case:
+			    #		{"id"=>15191,
+			    #		 "title"=>"title: Jpkole's new test case.",
+			    #		 "section_id"=>2397,
+			    #		 "type_id"=>6,
+			    #		 "priority_id"=>4,
+			    #		 "milestone_id"=>nil,
+			    #		 "refs"=>nil,
+			    #		 "created_by"=>1,
+			    #		 "created_on"=>1438201297,
+			    #		 "updated_by"=>1,
+			    #		 "updated_on"=>1438201297,
+			    #		 "estimate"=>"30s",
+			    #		 "estimate_forecast"=>nil,
+			    #		 "suite_id"=>75,
+			    #		 "custom_rallyurl"=>nil,
+			    #		 "custom_rallyformattedid"=>nil,
+			    #		 "custom_rallyobjectid"=>nil,
+			    #		 "custom_preconds"=>nil,
+			    #		 "custom_steps"=>nil,
+			    #		 "custom_expected"=>nil}
             rescue Exception => ex
                 print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
                 print "\t#{ex.message}\n"
@@ -310,8 +232,128 @@ def create_section_testcases(tc_per_sec)
             print "\tid:'#{new_case['id']}'  title:'#{new_case['title']}\n"
             @all_case_ids.push(new_case['id'])
         end
-        print "----\n"
+        print "\t----\n"
     end
+    return
+end
+
+
+def create_runs()
+    print "\n07) Creating runs...\n"
+    @all_run_ids = Array.new
+
+    #---------------------------------------------------------
+    suite_id = @all_suite_ids[0]
+    print "\tcreating 1 run in suite_id '#{suite_id}' with all test cases which are in the same suite...\n"
+    uri    = "add_run/#{@new_project['id']}"
+    fields = {  'suite_id'      => suite_id,
+                'name'          => 'My test run name 1',
+                'description'   => 'My test run description 1',
+                'milestone_id'  => nil,
+                'assigned_to'   => nil,
+                'include_all'   => true,
+                'case_ids'      => nil}
+    begin
+        new_run = @tr_con.send_post(uri, fields)
+        # Returns:
+		#		{"id"=>200,
+		#		 "suite_id"=>266,
+		#		 "name"=>"My test run name",
+		#		 "description"=>"My test run description",
+		#		 "milestone_id"=>nil,
+		#		 "assignedto_id"=>nil,
+		#		 "include_all"=>true,
+		#		 "is_completed"=>false,
+		#		 "completed_on"=>nil,
+		#		 "config"=>nil,
+		#		 "config_ids"=>[],
+		#		 "passed_count"=>0,
+		#		 "blocked_count"=>0,
+		#		 "untested_count"=>8,
+		#		 "retest_count"=>0,
+		#		 "failed_count"=>0,
+		#		 "custom_status1_count"=>0,
+		#		 "custom_status2_count"=>0,
+		#		 "custom_status3_count"=>0,
+		#		 "custom_status4_count"=>0,
+		#		 "custom_status5_count"=>0,
+		#		 "custom_status6_count"=>0,
+		#		 "custom_status7_count"=>0,
+		#		 "project_id"=>95,
+		#		 "plan_id"=>nil,
+		#		 "created_on"=>1438630002,
+		#		 "created_by"=>1,
+		#		 "url"=>"https://somewhere.testrail.com/index.php?/runs/view/200"}
+    rescue Exception => ex
+        print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
+        print "\t#{ex.message}\n"
+        raise UnrecoverableException.new("\tFailed to create a new run in the suite", self)
+    end
+    print "\trun id:'#{new_run['id']}'  name:'#{new_run['name']}\n"
+    @all_run_ids.push(new_run['id'])
+
+    #---------------------------------------------------------
+    suite_id = @all_suite_ids[1]
+    print "\tcreating 1 run in suite_id '#{suite_id}' with 2 test cases which are in the same suite...\n"
+    uri    = "add_run/#{@new_project['id']}"
+    fields = {  'suite_id'      => suite_id,
+                'name'          => 'My test run name 2',
+                'description'   => 'My test run description 2',
+                'milestone_id'  => nil,
+                'assigned_to'   => nil,
+                'include_all'   => false,
+                'case_ids'      => [@all_case_ids[2],@all_case_ids[3]]}
+    begin
+        new_run = @tr_con.send_post(uri, fields)
+    rescue Exception => ex
+        print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
+        print "\t#{ex.message}\n"
+        raise UnrecoverableException.new("\tFailed to create a new run in the suite", self)
+    end
+    print "\trun id:'#{new_run['id']}'  name:'#{new_run['name']}\n"
+    @all_run_ids.push(new_run['id'])
+
+    return
+end
+
+
+def create_results
+    print "\n08) Creating results...\n"
+    @all_result_ids = Array.new
+
+    #---------------------------------------------------------
+    runid  = @all_run_ids[0]
+    caseid = @all_case_ids[0]
+    print "\tcreating 1 result for run-id='#{runid}', case_id='#{caseid}'...\n"
+    uri    = "add_result_for_case/#{runid}/#{caseid}"
+    fields = {  'status_id'     => 1, # 1-passed, 2-blocked, 3-untested, 4-retest, 5-failed
+                'comment'       => 'Comment on my result #1',
+                'version'       => 'Build12345',
+                'elapsed'       => '314s',
+                'defects'       => '1,2,3,4,5',
+                'assigned_to'   => nil}
+    begin
+        new_result = @tr_con.send_post(uri, fields)
+        # Returns:
+		#		{"id"=>259,
+		#		 "test_id"=>15498,
+		#		 "status_id"=>1,
+		#		 "created_by"=>1,
+		#		 "created_on"=>1438632116,
+		#		 "assignedto_id"=>nil,
+		#		 "comment"=>"Comment on my result #1",
+		#		 "version"=>"Build12345",
+		#		 "elapsed"=>"5m 14s",
+		#		 "defects"=>"1,2,3,4,5",
+		#		 "custom_rallyobjectid"=>nil}
+    rescue Exception => ex
+        print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
+        print "\t#{ex.message}\n"
+        raise UnrecoverableException.new("\tFailed to create a new result", self)
+    end
+
+    @all_result_ids.push(new_result['id'])
+    return
 end
 
 
@@ -321,18 +363,23 @@ end
 bm_time = Benchmark.measure {
     get_testrail_connection()
     create_new_project("zJP-Proj-1b")
-    create_suites(4)
+    create_suites(2)
     create_suite_sections(2)
-    create_section_testcases(4)
+    create_section_testcases(2)
 
-    print "\n07) Done:\n"
+    create_runs()
+    create_results()
+
+    print "\n09) Done:\n"
     print "\tProject      : #{@new_project['id']}\n"
-    print "\tAll suites   : #{@all_suite_ids}\n"
-    print "\tAll sections : #{@all_section_ids}\n"
-    print "\tAll testcases: #{@all_case_ids}\n"
+    print "\t       suites: #{@all_suite_ids}\n"
+    print "\t     sections: #{@all_section_ids}\n"
+    print "\t    testcases: #{@all_case_ids}\n"
+    print "\t         runs: #{@all_run_ids}\n"
+    print "\t      results: #{@all_result_ids}\n"
 }
 
-print "\n08) This script (#{$PROGRAM_NAME}) is finished; benchmark time in seconds:\n"
+print "\n10) This script (#{$PROGRAM_NAME}) is finished; benchmark time in seconds:\n"
 print "  --User--   -System-   --Total-  --Elapsed-\n"
 puts bm_time.to_s
 

@@ -130,7 +130,7 @@ module RallyEIF
         @all_sections = get_all_sections()
         RallyLogger.debug(self, "Found '#{@all_sections.length}' sections")
         @all_sections.each do |next_section|
-          RallyLogger.debug(self, "    #{next_section.select{|x| x!="description"}}") # description too ugly for log file
+          RallyLogger.debug(self, "\tid='#{next_section['id']}', suite_id='#{next_section['suite_id']}' name='#{next_section['name']}'")
           @tr_section_ids.push(next_section['id'])
         end
 
