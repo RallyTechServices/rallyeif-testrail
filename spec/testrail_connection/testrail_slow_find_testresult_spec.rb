@@ -69,6 +69,11 @@ describe "When trying to find TestRail test case results" do
     @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase)
       
+    ###TODO: error occurs... so...
+    ### create a plan with the run in it:
+    ### - create plan & run at same time
+    ### - or update plan with run
+    ### - then close plan, delete plan (at top)
     # 3 - Create a Run
     extra_fields = { 'include_all' => true, 'suite_id' => testcase['suite_id'] }
     testrun,run_id = create_testrail_artifact(@connection_testrun, extra_fields)

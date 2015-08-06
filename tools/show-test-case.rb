@@ -53,22 +53,49 @@ def get_projects()
         @suites = Hash.new
         print "\tid   name                  suite_mode  is_completed  completed_on\n"
         print "\t---  --------------------  ----------  ------------  --------------------------------------\n"
-        all_projects.each do |item|
-            print "\t%3d"   %   [item['id']]
-            print "  %-20s" %   [item['name']]
-            print "  %-10d" %   [item['suite_mode']]
-            print "  %-12s" %   [item['is_completed']]
-            print "  %s"    %   [item['completed_on']]
-            if !item['completed_on'].nil?
-                print " (%s)"       %   [Time.at(item['completed_on'])]
+        all_projects.each do |next_project|
+            print "\t%3d"   %   [next_project['id']]
+            print "  %-20s" %   [next_project['name']]
+            print "  %-10d" %   [next_project['suite_mode']]
+            print "  %-12s" %   [next_project['is_completed']]
+            print "  %s"    %   [next_project['completed_on']]
+            if !next_project['completed_on'].nil?
+                print " (%s)"       %   [Time.at(next_project['completed_on'])]
             end
             print "\n"
-            if item['suite_mode'] == 3
-                @suites[item['id']] = @tr_con.send_get("get_suites/#{item['id']}").to_a
-                print "\t\tFound '#{@suites[item['id']].length}' suites in above project:\n"
-                @suites[item['id']].each do |sweet|
+            if next_project['suite_mode'] == 3
+                ################ suites
+                @suites[next_project['id']] = @tr_con.send_get("get_suites/#{next_project['id']}").to_a
+                print "\t\tFound '#{@suites[next_project['id']].length}' suites in above project:\n"
+                @suites[next_project['id']].each do |sweet|
                     print "\t\t\tsuite id=#{sweet['id']}, name=#{sweet['name']}\n"
+                    ################ sections
+                    uri = "get_sections/#{next_project['id']}&suite_id=#{sweet['id']}"
+                    all_sections = @tr_con.send_get(uri)
+                    print "\t\t\t\tFound '#{all_sections.length}' sections in above suite:\n"
+                    all_sections.each do |next_section|
+                        # {"id"=>1, "suite_id"=>1, "name"=>"All Test Cases", "description"=>nil, "parent_id"=>nil, "display_order"=>1, "depth"=>0}
+                        print "\t\t\t\t\tid='#{next_section['id']}'  name='#{next_section['name']}'  description='#{next_section['description']}'\n"
+                        ################ cases
+                        uri = "get_cases/#{next_project['id']}&suite_id=#{sweet['id']}&section_id=#{next_section['id']}"
+                        all_cases = @tr_con.send_get(uri)
+                        print "\t\t\t\t\tFound '#{all_cases.length}' cases in above section:\n"
+                        all_cases.each_with_index do |next_case,ndx|
+                            char=','
+                            if ndx == 0
+                                print "\t\t\t\t\t\tids="
+                                char='('
+                            end
+                            print "#{char}#{next_case['id']}"
+                            if all_cases.size-1 == ndx
+                                print ")\n"
+                            end
+                        end
+                        ################
+                    end
+                    ################
                 end
+                ################
             end
         print "\t---  --------------------  ----------  ------------  --------------------------------------\n"
         end
@@ -111,9 +138,8 @@ def get_case_fields()
     @tr_case_fields  = @tr_con.send_get(uri)
     print "\n05) Test case custom fields:\n"
     print "\t                                                                             display global/\n"
-    print "\tid             name         type_id             system_name            label  _order     projIDs\n"
-    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -----------\n"
-
+    print "\tid             name         type_id             system_name            label  _order      projIDs\n"
+    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- ------------\n"
     cf_types = ['',             # 0
                 'String',       # 1
                 'Integer',      # 2
@@ -164,9 +190,8 @@ def get_result_fields()
     @tr_result_fields  = @tr_con.send_get(uri)
     print "\n06) Result custom fields:\n"
     print "\t                                                                             display global/\n"
-    print "\tid             name         type_id             system_name            label  _order projIDs\n"
-    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- -------\n"
-
+    print "\tid             name         type_id             system_name            label  _order  projIDs\n"
+    print "\t-- ---------------- --------------- ----------------------- ---------------- ------- --------\n"
     cf_types = ['',             # 0
                 'String',       # 1
                 'Integer',      # 2
@@ -274,11 +299,11 @@ def get_test_statuses()
         #   "is_untested"=>true,
         #   "is_final"=>false},
     print "\n09) Known test statuses:\n"
-    print "\t  id  name      label\n"
-    print "\t  --  --------  --------\n"
+    print "\t  id  name            label\n"
+    print "\t  --  --------------  --------\n"
     @tr_test_statuses.each do |this_ST|
         print "\t  %-2d"%[this_ST['id']]
-        print "  %-8s"%[this_ST['name']]
+        print "  %-14s"%[this_ST['name']]
         print "  %-8s"%[this_ST['label']]
         print "\n"
     end
@@ -308,18 +333,20 @@ def get_cases(target_proj, section_id:'')
     suite_list.each do |suite_id|
         uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
         cases = @tr_con.send_get(uri)
-        print "\ttest cases found (#{suite_id}): #{cases.length}\n"
+        print "\ttest cases found (#{suite_id}): #{cases.length}"
         if cases.length > 0
             cases.each_with_index do |item, ndx|
                 if ndx == 0
-                    print "\t\t("
+                    print " ("
                 else
                     print "," if ndx != cases.length
                 end
                 print "#{item['id']}"
             end
+            print ")\n"
+        else
+            print "\n"
         end
-        print ")\n"
         all_cases.concat cases
     end
     return all_cases
@@ -496,10 +523,46 @@ def get_runs_in_plans(target_proj)
 		    #		       "config"=>nil,
 		    #		       "config_ids"=>[],
 		    #		       "url"=>"https://somewhere.testrail.com/index.php?/runs/view/194"}]}]}
-#require 'pry';binding.pry
-        print "\t\tfound '#{plan['entries'].length}' test runs:\n"
+        print "\t\tfound '#{plan['entries'].length}' entries:\n"
         plan['entries'].each do |e|
-            print "\t\tRun id='#{e['id']}'  name='#{e['name']}'  config_ids='#{e['config_ids']}'\n"
+            print "\t\tEntry id='#{e['id']}'  name='#{e['name']}'  config_ids='#{e['config_ids']}'\n"
+            print "\t\t\tContains '#{e['runs'].length}' runs:\n"
+            e['runs'].each do |next_run|
+                print "\t\t\t\tid='#{next_run['id']}'\n"
+                uri = "get_results_for_run/#{next_run['id']}"
+                results = @tr_con.send_get(uri)
+#require 'pry';binding.pry
+                    # Returns:
+					#		 [{"id"=>255,
+					#		  "test_id"=>15391,
+					#		  "status_id"=>6,
+					#		  "created_by"=>1,
+					#		  "created_on"=>1437574436,
+					#		  "assignedto_id"=>nil,
+					#		  "comment"=>nil,
+					#		  "version"=>nil,
+					#		  "elapsed"=>nil,
+					#		  "defects"=>nil,
+					#		  "custom_rallyobjectid"=>nil},
+                    #
+					#		 {"id"=>254,
+					#		  "test_id"=>15390,
+					#		  "status_id"=>5,
+					#		  "created_by"=>1,
+					#		  "created_on"=>1437574212,
+					#		  "assignedto_id"=>nil,
+					#		  "comment"=>nil,
+					#		  "version"=>nil,
+					#		  "elapsed"=>nil,
+					#		  "defects"=>nil,
+					#		  "custom_rallyobjectid"=>nil},
+                    #
+                    #       .....
+                    print "\t\t\t\t\twith '#{results.length}' results:\n"
+                    results.each do |next_result|
+                        print "\t\t\t\t\tid='#{next_result['id']}'  custom_rallyobjectid='#{next_result['custom_rallyobjectid']}'\n"
+                    end
+            end
         end
     end
     return
@@ -530,8 +593,8 @@ end
 get_testrail_connection()
 all_projects = get_projects()
 dp='Test-Proj-sm3'
-dp='zJP-Proj-1'
-dp='JP-VCE-3'
+dp='JP-VCE-sm3'
+dp='zJP-Test-Proj1'
 target_proj = get_desired_proj(dp,all_projects)
 get_case_fields()
 get_result_fields()

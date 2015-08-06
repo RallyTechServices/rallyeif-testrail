@@ -49,11 +49,11 @@ module RallyEIF
           
           tr_testcase_list.each do |testcase|
             if !case_parents[testcase['id']].nil?
-              RallyLogger.debug( self,  "This case has a parent #{testcase['id']}: #{case_parents[testcase['id']]['FormattedID']}")
+              RallyLogger.debug( self,  "This case has a parent '#{testcase['id']}': '#{case_parents[testcase['id']]['FormattedID']}'")
               story = case_parents[testcase['id']]
               rally_testcase = @rally_connection.find_by_external_id(testcase['id'])
               if !rally_testcase.nil?
-                RallyLogger.debug(self, "Linking Rally Test Case #{rally_testcase['FormattedID']} to Story #{story['FormattedID']}")
+                RallyLogger.debug(self, "Linking Rally Test Case '#{rally_testcase['FormattedID']}' to Story '#{story['FormattedID']}'")
                 @rally_connection.update(rally_testcase, { "WorkProduct" => story })
               end
               

@@ -34,7 +34,7 @@ module RallyEIF
 
         def find_rally_stories_with_plan_ids()
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
-          RallyLogger.info(self, "Find Rally Stories with a value in #{plan_id_field_on_stories}")
+          RallyLogger.info(self, "Find Rally Stories with a value in '#{plan_id_field_on_stories}'")
           @rally = @rally_connection.rally
          
           begin
@@ -62,7 +62,7 @@ module RallyEIF
   
             query.query_string = base_query
             #query.query_string = base_string
-            RallyLogger.debug(self, "Rally using query: #{query.query_string}")
+            RallyLogger.debug(self, "Rally using query: '#{query.query_string}'")
   
             query_result = @rally.find(query)
   
@@ -70,7 +70,7 @@ module RallyEIF
             raise UnrecoverableException.copy(ex, self)
           end
   
-          RallyLogger.info(self, "  Found #{query_result.total_result_count} Stories in Rally")
+          RallyLogger.info(self, "  Found '#{query_result.total_result_count}' Stories in Rally")
           return query_result
         end
         
@@ -94,18 +94,18 @@ module RallyEIF
             plan = plan_hash["R#{story[plan_id_field_on_stories]}"] || plan_hash["#{story[plan_id_field_on_stories]}"]
             if ( !plan.nil?)
               #RallyLogger.debug(self, "Found test plan #{plan}, #{plan.keys}")
-              RallyLogger.debug(self, "Found test plan #{plan['name']}")
+              RallyLogger.debug(self, "Found test plan '#{plan['name']}'")
               
               plan['tests'].flatten.each do |test|
                 case_parents[test['case_id']] = story
               end
             else
-              RallyLogger.debug(self, "Did not find a test plan for story #{story.FormattedID}, test plan ID #{story[plan_id_field_on_stories]}")
+              RallyLogger.debug(self, "Did not find a test plan for story '#{story.FormattedID}', test plan ID '#{story[plan_id_field_on_stories]}'")
             end
           end
           
           case_parents.keys.each do |case_id|
-            RallyLogger.debug(self, "Associating Test Rail Test Case #{case_id} with Rally Story #{case_parents[case_id].FormattedID}")
+            RallyLogger.debug(self, "Associating Test Rail Test Case '#{case_id}' with Rally Story '#{case_parents[case_id].FormattedID}'")
             story = case_parents[case_id]
             begin
               rally_testcase = @rally_connection.find_by_external_id(case_id)
@@ -113,10 +113,10 @@ module RallyEIF
               #
             end
             if !rally_testcase.nil?
-              RallyLogger.debug(self, "Linking Rally Test Case #{rally_testcase['FormattedID']} to Story #{story['FormattedID']}")
+              RallyLogger.debug(self, "Linking Rally Test Case '#{rally_testcase['FormattedID']}' to Story '#{story['FormattedID']}'")
               @rally_connection.update(rally_testcase, { "WorkProduct" => story })
             else
-              RallyLogger.debug(self, "There is not a Rally Test Case for Test Rail Test Case #{case_id}")
+              RallyLogger.debug(self, "There is not a Rally Test Case for Test Rail Test Case '#{case_id}"'')
             end
           end
           RallyLogger.debug(self, "Completed running post process to associate test cases to stories in Rally.")
