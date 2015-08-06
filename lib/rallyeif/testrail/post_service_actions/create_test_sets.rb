@@ -63,11 +63,6 @@ module RallyEIF
             RallyLogger.debug(self, "Rally using query: #{query.query_string}")
             
             query_result = @rally_connection.rally.find(query)
-#RallyLogger.debug(self, "JPKdebug*****: query_result.length: #{query_result.length}")
-#query_result.each_with_index do |nextone,i|
-#  RallyLogger.debug(self, "JPKdebug*****: #{i+1}:  FmtID=#{nextone.FormattedID}  OID=#{nextone.ObjectID}")
-#  RallyLogger.debug(self, "JPKdebug*****: query_result.inspect: #{nextone.inspect}") 
-#end
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
@@ -76,7 +71,7 @@ module RallyEIF
         end
         
         def create_rally_test_set(name,rally_test_case)
-          RallyLogger.debug(self, "Creating a TestSet at #{name}")
+          RallyLogger.debug(self, "Creating a TestSet named: '#{name}"'')
           workproduct = rally_test_case['WorkProduct']
           new_test_set = nil
           
@@ -86,15 +81,16 @@ module RallyEIF
             # workproduct = @rally_connection.rally.read("hierarchicalrequirement", workproduct['ObjectID'])
             iteration = workproduct['Iteration']
             project = workproduct['Project']
-            RallyLogger.debug(self, "#{iteration}, #{project}")
-            ts = { "Name" => name, "Iteration" => iteration, "Project" => project }
-            new_test_set = @rally_connection.rally.create('testset',ts)
+            RallyLogger.debug(self, "iteration: '#{iteration}', project: '#{project}'")
           end
+          ts = { "Name" => name, "Iteration" => iteration, "Project" => project }
+          new_test_set = @rally_connection.rally.create('testset',ts)
+          
           return new_test_set
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
-          RallyLogger.info(self, "Adding #{rally_test_case} to #{rally_test_set}")
+          RallyLogger.info(self, "Adding '#{rally_test_case}' to '#{rally_test_set}'")
           
           test_set = @rally_connection.rally.read("testset", rally_test_set['ObjectID'])
           
@@ -129,7 +125,7 @@ module RallyEIF
 
               if !rally_oid.nil?
                 rally_test_case = find_rally_test_case_by_oid(rally_oid)
-                if !rally_test_case.nil?
+                #if !rally_test_case.nil?
                   #rally_test_set = find_rally_test_set_by_name(run_name)
                   rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
                   if rally_test_set.nil?
@@ -138,31 +134,34 @@ module RallyEIF
                   if !rally_test_set.nil?
                     add_testcase_to_test_set(rally_test_case,rally_test_set)
                   end
-                else
-                  RallyLogger.info(self, "Couldn't find Rally test case for: #{test['case_id']}")
-                end
+                #else
+                  #RallyLogger.info(self, "Couldn't find Rally test case for: '#{test['case_id']}'")
+                #end
 
               else
-                RallyLogger.info(self, "Skip test case that's not connected to Rally: #{test['case_id']}")
+                RallyLogger.info(self, "Skip test case that's not connected to Rally: '#{test['case_id']}'")
               end
             end
           end
           
           RallyLogger.info(self,"Associate TestResult with the TestSet")
           tr_testresults_list.each do |testresult|
-            RallyLogger.debug(self,"testresult: #{testresult}")
+            #RallyLogger.debug(self,"TestRail testresult: '#{testresult}'")
+            RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
+            RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
+            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase']['custom_rallyformattedid']}'")
             rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
             if rally_test_set.nil?
               RallyLogger.debug(self,"test: <no test set found in Rally>")
             else
-              RallyLogger.debug(self,"test: #{testresult['_test']['run_id']}")
+              RallyLogger.debug(self,"test: '#{testresult['_test']['run_id']}'")
             end
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
             if !rally_result.nil? && !rally_test_set.nil?
               fields = {"TestSet"=>{'_ref'=>rally_test_set['_ref']}}
               rally_result.update(fields)
             else
-              RallyLogger.info(self, "No result found in Rally: #{testresult['id']}")
+              RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
             end
           end
           
