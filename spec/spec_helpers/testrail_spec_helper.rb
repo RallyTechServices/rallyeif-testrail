@@ -173,15 +173,13 @@ module TestRailSpecHelper
       #     updated_on        timestamp  The date/time when the test case was last updated (as UNIX timestamp)
       
       fields = {'estimate'      => '3m14s',
-                #'milestone_id'  => 2      ,
-                'priority_id'   => 5      ,
-                'refs'          => ''     ,
-                'section_id'    => 0      ,
-                'title'         => "Auto Test Case - #{title}"  ,
-                'type_id'       => 6      }
+                'priority_id'   => 5,
+                'refs'          => '',
+                'title'         => 'Spec TestCase' + title,
+                'type_id'       => 6}
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
-      return [item, item['title']]
+      return [item, item['id']]
 
     when 'testrun'
       # TestRun system fields (* = system fields supported on POST):
@@ -215,7 +213,7 @@ module TestRailSpecHelper
                 'include_all'   => false                  ,
                 'suite_id'      => 1                      ,
                 #'milestone_id'  => 1                      ,
-                'name'          => 'Test run - ' + title  }
+                'name'          => 'Spec TestRun - ' + title  }
       fields.merge!(extra_fields) if !extra_fields.nil?
       item = connection.create(fields)
       return [item, item['id']]
@@ -245,7 +243,7 @@ module TestRailSpecHelper
       #     add_results:            :run_id
       #     add_results_for_cases:  :run_id
       fields = {'assignedto_id' => 1,
-                'comment'       => 'This test failed'   ,
+                'comment'       => 'Spec TestResult - ' + title,
                 'defects'       => 'TR-7'               ,
                 'elapsed'       => '15s'                ,
                 'status_id'     => 5                    ,
@@ -275,19 +273,45 @@ module TestRailSpecHelper
       #     retest_count    int       The amount of tests in the test plan marked as retest
       #     untested_count  int       The amount of tests in the test plan marked as untested
       #     url             string    The address/URL of the test plan in the user interface
-      fields = {
-        'name' => 'Test Plan - ' + title
-      }
+      fields = {  'name'          => 'Spec TestPlan - ' + title,
+                  'description'   => '',
+                  'milestone_id'  => nil,
+                  'entries'       => []}
       fields.merge!(extra_fields) if !extra_fields.nil?
-      
       item = connection.create(fields)
       return [item, item['id']]
+
+    when 'testsuite'
+      fields = {  'name'        => 'Spec TestSuite - ' + title,
+                  'description' => 'description for Spec TestSuite' }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      item = connection.create(fields)
+        # Returns:
+        #       {"id"=>97,
+        #        "name"=>"Suite '1' of '5'",
+        #        "description"=>"One of JPKole's test suites.",
+        #        "project_id"=>55,
+        #        "is_master"=>false,
+        #        "is_baseline"=>false,
+        #        "is_completed"=>false,
+        #        "completed_on"=>nil,
+        #        "url"=>"https://tsrally.testrail.com/index.php?/suites/view/97"}
+      return [item, item['id']]
+
+    when 'testsection'
+      fields = {  'description' => 'description for Spec TestSection',
+                  'suite_id'    => 0,
+                  'prent_id'    => nil,
+                  'name'        => 'Spec TestSection - ' + title
+               }
+      fields.merge!(extra_fields) if !extra_fields.nil?
+      item = connection.create(fields)
+      return [item, item['id']]
+
     else
-      raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{connection.artifact_type}'", self)
+      raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{connection.artifact_type}' (msgA)", self)
     end
-
-    return nil  
-
+    return nil
   end
   
 end

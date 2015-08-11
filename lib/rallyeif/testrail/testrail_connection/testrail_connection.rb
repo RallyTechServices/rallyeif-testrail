@@ -40,12 +40,13 @@ module RallyEIF
       
       def read_config(config)
         super(config)
-        @url     = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
-        @project = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
+        @url       = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Url")
+        @project   = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "Project")
         # yes, it's weird to put a field name from a Rally artifact into the other connection
         # but this keeps us from overriding/monkey-patching the Rally connection class
         @rally_story_field_for_plan_id = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RallyStoryFieldForPlanID", false)
         @section_id = nil
+        @cfg_suite_ids = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "SuiteIDs", false)
       end
       
       def name()
@@ -121,16 +122,42 @@ module RallyEIF
         @all_suites = get_all_suites()
         RallyLogger.info(self,"Found '#{@all_suites.length}' suites in above project:")
         @all_suites.each do |next_suite|
-          RallyLogger.info(self,"\tsuite id=#{next_suite['id']}, name=#{next_suite['name']}")
+          RallyLogger.info(self,"\tSuite S#{next_suite['id']}: name=#{next_suite['name']}")
           @tr_suite_ids.push(next_suite['id'])
         end
-        
+        # Handle config file: <SuiteIDs>1,2,3,4</SuiteIDs>
+        if !@cfg_suite_ids.nil?
+          suite_ids = @cfg_suite_ids.split(',')     # Make array from one string
+          suite_ids.map!{ |s| s.gsub(/^[sS]/, '') } # Remove potential leading 'S' (i.e. ["S1", "S2", "S3", ...])
+          suite_ids.map!{|s|s.to_i}                 # Convert array of strings to integers
+          unknown_ids = suite_ids - @tr_suite_ids   # Did they specify any we did not find?
+          if !unknown_ids.empty?
+            raise UnrecoverableException.new("Found unknown ID(s) in config file <SuiteIDs> tag: '#{unknown_ids}'", self)
+          end
+          
+          new_list = Array.new        # Make a new list of suites
+          @all_suite_ids = Array.new  # Keep a list of suite IDs
+          @all_suites.each do |next_suite|
+            if suite_ids.include?(next_suite['id'])
+              new_list.push(next_suite)
+              @all_suite_ids.push(next_suite['id'])
+            end
+          end
+          @all_suites = new_list
+          mesg = 'be limited to suites specified' # For logger msg below
+        else
+          @all_suite_ids = @tr_suite_ids
+          mesg = 'include all suites found'
+        end
+        RallyLogger.debug(self, "Future searches will #{mesg}: '#{@all_suite_ids}'")
+
+
         # Build section info...
         @tr_section_ids = Array.new
         @all_sections = get_all_sections()
         RallyLogger.debug(self, "Found '#{@all_sections.length}' sections")
         @all_sections.each do |next_section|
-          RallyLogger.debug(self, "    #{next_section.select{|x| x!="description"}}") # description too ugly for log file
+          RallyLogger.debug(self, "\tid='#{next_section['id']}', suite_id='#{next_section['suite_id']}' name='#{next_section['name']}'")
           @tr_section_ids.push(next_section['id'])
         end
 
@@ -184,6 +211,13 @@ module RallyEIF
           
         when 'testplan'
           #
+        
+        when 'testsuite'
+          #
+
+        when 'testsection'
+          #
+
         when 'testresult'
           begin
             uri = 'get_result_fields'
@@ -211,7 +245,7 @@ module RallyEIF
           end
           
         else
-          RallyLogger.error(self, "Unrecognize value for <ArtifactType> '#{@artifact_type}'")
+          RallyLogger.error(self, "Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg1)")
         end
 
 
@@ -235,8 +269,6 @@ module RallyEIF
                             'type_id'           => 2,
                             'updated_by'        => 2,
                             'updated_on'        => 2}
-
-        when 'testrun'
           
         when 'testresult' #  Field-name          Type (1=String, 2=Integer)
           @tr_fields_tcr = {'assignedto_id'     => 2,
@@ -269,9 +301,12 @@ module RallyEIF
                             'retest_count'          => 2,
                             'untested_count'        => 2,
                             'url'                   => 1}
-            
+        when 'testrun'
+        when 'testsuite'
+        when 'testsection'
+        
         else
-          RallyLogger.error(self, "Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg1)")
+          RallyLogger.error(self, "Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg2)")
         end
 
 
@@ -291,14 +326,15 @@ module RallyEIF
         return @testrail
 
       end # 'def connect()'
-      
 #---------------------#      
       def add_run_to_plan(testrun,testplan)
-        RallyLogger.debug(self, "Adding testrun '#{testrun}' to testplan '#{testplan}'")
+        RallyLogger.debug(self, "Preparing to add testrun: '#{testrun}'")
+        RallyLogger.debug(self, "             to testplan: '#{testplan}'")
         begin
           uri = "add_plan_entry/#{testplan['id']}"
           extra_fields = { 'suite_id' => testrun['suite_id'], 'runs' => [testrun] }
           new_plan_entry = @testrail.send_post(uri, extra_fields)
+          RallyLogger.debug(self, "New plan entry: '#{new_plan_entry}'")
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{extra_fields})':")
           RallyLogger.warning(self, "\t#{ex.message}")
@@ -308,46 +344,122 @@ module RallyEIF
       end
 #---------------------#
       def create_internal(int_work_item)
-        # Hardcode these until we understand more...
-        run_id     = 1
-        case_id    = 2
-        section_id = @all_sections[0]['id'] # put in first section
-        RallyLogger.debug(self,"Preparing to create a TestRail: '#{@artifact_type}' in Section #{section_id}")
+#        if @all_sections.empty?
+#          section_id = 1
+#        else
+#          section_id = @all_sections[0]['id'] # put in first section
+#        end
+#        if @all_suites.empty?
+#          suite_id = 0
+#        else
+#          suite_id = @all_suites[0]['id'] # put in first suite
+#        end
+        
+        
         begin
           case @artifact_type.to_s.downcase
           when 'testcase'
+            section_id = int_work_item['section_id']
+            RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type}' in Section '#{section_id}'")
             uri = "add_case/#{section_id}"
             new_item = @testrail.send_post(uri, int_work_item)
             gui_id = 'C' + new_item['id'].to_s # How it appears in the GUI
-            RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
+            extra_info = ''
+            #RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
             
           when 'testrun'
-            uri = "add_run/#{@tr_project['id']}&suite_id=#{@all_suites.first['id']}"
+            suite_id = int_work_item['suite_id']
+            RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type}' in Suite 'S#{suite_id}'")
+            uri = "add_run/#{@tr_project['id']}&suite_id=#{suite_id}"
             new_item = @testrail.send_post(uri, int_work_item)
+            gui_id = 'R' + new_item['id'].to_s # How it appears in the GUI
+            extra_info = ''
             
           when 'testplan'
+            RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type}'")
             uri = "add_plan/#{@tr_project['id']}"
             new_item = @testrail.send_post(uri, int_work_item)
+            gui_id = 'R' + new_item['id'].to_s # How it appears in the GUI
+            
+            # Build a string of info about entries created (for log file)
+            str1 = ''
+            new_item['entries'].each_with_index do |e,ndx|
+              if ndx == 0
+                str1 = new_item['entries'].length.to_s + ' entries:('
+              else
+                str1 = str1 + ','
+              end  
+              str1 = str1 + e['id'].to_s
+              str1 = str1 + ')' if ndx == new_item['entries'].length-1
+            end
+
+            # Build a string info about runs created (for log file)
+            str2 = ''
+            new_item['entries'].each_with_index do |e,ndx|
+              e['runs'].each_with_index do |r,ndx|
+                if ndx == 0
+                  str2 = str2 + ' runs:('
+                else
+                  str2 = str2 + ','
+                end  
+                str2 = str2 + r['id'].to_s
+                str2 = str2 + ')' if ndx == e['runs'].length-1
+              end
+            end
+            extra_info = "; #{str1}; #{str2}"
+
+          when 'testsuite'
+            RallyLogger.debug(self,"Preparing to create a TestRail 'testsuite'")
+            uri = "add_suite/#{@tr_project['id']}"
+            new_item = @testrail.send_post(uri, int_work_item)
+                  # Returns:
+                  #       {"id"=>97,
+                  #        "name"=>"Suite '1' of '5'",
+                  #        "description"=>"One of JPKole's test suites.",
+                  #        "project_id"=>55,
+                  #        "is_master"=>false,
+                  #        "is_baseline"=>false,
+                  #        "is_completed"=>false,
+                  #        "completed_on"=>nil,
+                  #        "url"=>"https://tsrally.testrail.com/index.php?/suites/view/97"}
+            gui_id = 'S' + new_item['id'].to_s # How it appears in the GUI
+            extra_info = ''
+
+          when 'testsection'
+            RallyLogger.debug(self,"Preparing to create a TestRail 'testsection'")
+            uri = "add_section/#{@tr_project['id']}"
+            new_item = @testrail.send_post(uri, int_work_item)
+                  # Returns:
+            gui_id = new_item['id'].to_s # How it appears in the GUI
+            extra_info = ''
             
           when 'testresult'
+            # Hardcode these until we understand more...
+            run_id  = 1
+            case_id = 2
+
             run_id = int_work_item['run_id'] || run_id
             case_id = int_work_item['case_id'] || case_id
+            RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type}' for run_id='R#{run_id}', case_id='T#{case_id}'")
             uri = "add_result_for_case/#{run_id}/#{case_id}"
             new_item = @testrail.send_post(uri, int_work_item)
-            gui_id = '(no ID)'
+            gui_id = "(id='#{new_item['id']}' test_id='#{new_item['test_id']}')"
+            extra_info = ''
             
           else
             raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg2)", self)
           end
-        rescue RuntimeError => ex
+        rescue RuntimeError => ex1
           RallyLogger.debug(self,"Runtime error has occurred")
-          raise RecoverableException.copy(ex, self)
-        rescue Exception => ex
-          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{int_work_item})':\n")
-          RallyLogger.warning(self, "\t#{ex.message}")
-          raise RecoverableException.copy("\tFailed to create a TestRail '#{@artifact_type}'", self)
+          raise RecoverableException.copy(ex1, self)
+        rescue Exception => ex2
+          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post'")
+          RallyLogger.warning(self, "\targ1: '#{uri}'")
+          RallyLogger.warning(self, "\targ2: '#{int_work_item})'")
+          RallyLogger.warning(self, "\tmsg : '#{ex2.message}'")
+          raise RecoverableException.copy(ex2, self)
         end
-        RallyLogger.debug(self,"Created #{@artifact_type} #{gui_id}")
+        RallyLogger.debug(self,"Created TestRail '#{@artifact_type}' number '#{gui_id}'#{extra_info}")
         return new_item
       end
 #---------------------#
@@ -363,15 +475,33 @@ module RallyEIF
           when 'testplan'
             uri = "delete_plan/#{item['id']}"
             retval = @testrail.send_post(uri,nil)
+          when 'testsuite'
+            uri = "delete_suite/#{item['id']}"
+            retval = @testrail.send_post(uri,nil)
+          when 'testsection'
+            # Don't try to delete it unless it exist.
+            get_all_sections().each do |next_section|
+              uri = nil
+              if next_section['id'] == item['id']
+                uri = "delete_section/#{item['id']}"
+                retval = @testrail.send_post(uri,nil)
+                break
+              end
+            end
+            if uri.nil?
+              RallyLogger.debug(self,"NOTE: TestRail section '#{item['id']}' appears to be already deleted; ignored")
+            end
           when 'testresult'
             # ToDo: How to delete a Result?  Not in documentation?
+            uri = 'n/a'
+            RallyLogger.debug(self,"NOTE: TestRail has no API for deleting a 'testresult'; ignored")
           else
-            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg2)", self)
           end
-        rescue
+        rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_post(#{uri}, nil)':\n")
           RallyLogger.warning(self, "\t#{ex.message}")
-          raise RecoverableException.copy("\tFailed to delete '#{@artifact_type}'; id='#{item['id']}'", self)
+          raise RecoverableException.new("\tFailed to delete '#{@artifact_type}'; id='#{item['id']}'", self)
         end
         return nil
       end
@@ -409,7 +539,7 @@ module RallyEIF
           end
 
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg3)", self)
         end
         
         return true
@@ -433,9 +563,9 @@ module RallyEIF
             raise UnrecoverableException.new('Unimplemented logic: find on "testresult"...', self)
           
           else
-            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{type}'", self)
+            raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{type}' (msg4)", self)
           end
-        rescue
+        rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':\n")
           RallyLogger.warning(self, "\t#{ex.message}")
           raise RecoverableException.copy("\tFailed to find the '#{type}' artifact", self)
@@ -451,7 +581,7 @@ module RallyEIF
           begin
             uri = "get_cases/#{@tr_project['id']}"
             artifact_array = @testrail.send_get(uri)
-          rescue
+          rescue Exception => ex
             RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':\n")
             RallyLogger.warning(self, "\t#{ex.message}")
             raise RecoverableException.new("\tFailed to find testcases with populated <ExternalID> field", self)
@@ -464,7 +594,7 @@ module RallyEIF
           raise UnrecoverableException.new('Unimplemented logic: find_by_external_id on "testresult"', self)
 
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg5)", self)
         end
         
         matching_artifacts = []
@@ -531,6 +661,7 @@ module RallyEIF
           raise UnrecoverableException.new("Invalid value for suite_mode (#{@tr_project_sm})", self)
         end
         
+        RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects in suite(s) '#{@all_suite_ids}'")
         @all_suites.each do |next_suite|
           begin
              uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
@@ -562,21 +693,23 @@ module RallyEIF
       def find_test_runs()
         plans = find_test_plans()
         runs = []
+        run_ids = []
         plans.each do |plan|
           runs = runs.concat(plan['runs'])
+          run_ids = run_ids.concat(plan['run_ids'])
         end
         
-        begin
-          uri = "get_runs/#{@tr_project['id']}"
-          orphan_runs = @testrail.send_get(uri)
-          runs = orphan_runs.concat(runs)
-        rescue Exception => ex
-          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-          RallyLogger.warning(self, "\t#{ex.message}")
-          raise UnrecoverableException.new("\tFailed to find any Test Runs", self)
-        end
+#        begin
+#          uri = "get_runs/#{@tr_project['id']}"
+#          orphan_runs = @testrail.send_get(uri)
+#          runs = orphan_runs.concat(runs)
+#        rescue Exception => ex
+#          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
+#          RallyLogger.warning(self, "\t#{ex.message}")
+#          raise UnrecoverableException.new("\tFailed to find any Test Runs", self)
+#        end
   
-        return runs
+        return runs,run_ids
       end
 #---------------------#      
       def find_test_for_run(run_id)
@@ -604,6 +737,7 @@ module RallyEIF
             plan = @testrail.send_get(uri2)
             runs = []
             tests = []
+            run_ids = []
               
             entries = plan['entries'] || []
             entries.each do |entry|
@@ -612,25 +746,31 @@ module RallyEIF
                 uri3 = "get_run/#{run_shell['id']}"
                 run = @testrail.send_get(uri3)
                 runs.push(run)
+                
                 uri4 = "get_tests/#{run_shell['id']}"
                 test = @testrail.send_get(uri4)
                 tests.push(test)
+                
+                run_ids.push(run_shell['id'])
               end
             end
             plan['runs'] = runs
             plan['tests'] = tests
+            plan['run_ids'] = run_ids
             plans.push(plan)
           end
         rescue Exception => ex
           raise UnrecoverableException.new("Failed to find any Test Plans.\n TestRail api returned:#{ex.message}", self)
         end
-      
+
         return plans
       end
 #---------------------#      
       def find_test_results()
         # have to iterate over the runs
-        runs = find_test_runs()
+        runs, run_ids = find_test_runs()
+        RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
+        
         test_results = []
         runs.each do |run|
           begin
@@ -680,7 +820,7 @@ module RallyEIF
           raise UnrecoverableException.new('Not available for "testresult": find_updates...', self)
 
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg6)", self)
         end
         RallyLogger.info(self, "Found '#{artifact_array.length}' updated '#{@artifact_type}' objects in '#{name()}'")
 
@@ -691,20 +831,6 @@ module RallyEIF
         RallyLogger.info(self, "Find updated TestRail '#{@artifact_type}' objects since '#{reference_time}'")
         unix_time = reference_time.to_i
         matching_artifacts = []
-        
-        case @tr_project_sm
-        when 1 # single suite
-          # fall thru
-          
-        when 2 # 1+baselines
-          # fall thru
-          
-        when 3 # 3: multiple suites
-          # fall thru
-          
-        else
-          raise UnrecoverableException.new("Invalid value for suite_mode (#{@tr_project_sm})", self)
-        end
         
         @all_suites.each do |next_suite|
           begin
@@ -838,18 +964,20 @@ module RallyEIF
         when 'testcase'
           all_fields = artifact
           all_fields.merge!(new_fields)
-          updated_item = @testrail.send_post("update_case/#{artifact['id']}", all_fields)
+          uri = "update_case/#{artifact['id']}"
+          updated_item = @testrail.send_post(uri, all_fields)
 
         when 'testrun'
           all_fields = artifact
           all_fields.merge!(new_fields)
-          updated_item = @testrail.send_post("update_run/#{artifact['id']}", all_fields)
-
+          uri = "update_run/#{artifact['id']}"
+          updated_item = @testrail.send_post(uri, all_fields)
+          
         when 'testresult'
           raise UnrecoverableException.new('Unimplemented logic: update_internal on "testresult"...', self)
 
         else
-          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}'", self)
+          raise UnrecoverableException.new("Unrecognize value for <ArtifactType> '#{@artifact_type}' (msg7)", self)
         end
         return updated_item
       end

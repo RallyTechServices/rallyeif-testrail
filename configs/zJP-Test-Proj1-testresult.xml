@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE config SYSTEM "config.dtd" [
-<!ENTITY Creds-Rally    SYSTEM "configs/Creds-zJP-Proj-1-Rally.xml">
-<!ENTITY Creds-TestRail SYSTEM "configs/Creds-zJP-Proj-1-TestRail.xml">
+<!ENTITY Creds-Rally    SYSTEM "configs/Creds-zJP-Test-Proj1-Rally.xml">
+<!ENTITY Creds-TestRail SYSTEM "configs/Creds-zJP-Test-Proj1-TestRail.xml">
 ]>
 <config>
     <RallyTestResultConnection>
