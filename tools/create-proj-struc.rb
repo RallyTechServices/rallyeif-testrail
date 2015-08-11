@@ -466,9 +466,9 @@ def create_plan_entries(pe_count)
             print "\tmsg:  #{ex.message}\n"
             raise UnrecoverableException.new("\tFailed to create a new Plan Entry", self)
         end
-        print "\tid:'#{new_plan_entry['id']}'  name:'#{new_plan_entry['name']}  suite_id:'#{new_plan_entry['suite_id']}'\n"
+        print "\tid:'#{new_plan_entry['id']}'  name:'#{new_plan_entry['name']}'  suite_id:'#{new_plan_entry['suite_id']}'\n"
         new_plan_entry['runs'].each do |next_run|
-            print "\t\trun id:'#{next_run['id']}'  name:'#{next_run['name']}  suite_id:'#{next_run['suite_id']}  plan_id:'#{next_run['plan_id']}'\n"
+            print "\t\trun id:'#{next_run['id']}'  name:'#{next_run['name']}'  suite_id:'#{next_run['suite_id']}'  plan_id:'#{next_run['plan_id']}'\n"
         end
         @all_planentries.push(new_plan_entry)
         @all_planentries_ids.push(new_plan_entry['id'])
