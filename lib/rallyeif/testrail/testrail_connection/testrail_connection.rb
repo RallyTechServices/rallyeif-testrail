@@ -545,6 +545,22 @@ module RallyEIF
         return true
       end
 #---------------------#
+      def filter_out_already_connected(artifacts)
+        #
+        # Find only the new artifacts (i.e. reject those with a populated external_id field)
+        #
+        matching_artifacts = []
+        rejected_artifacts = []
+        artifacts.each do |artifact|
+          if artifact["custom_#{@external_id_field.downcase}"].nil?
+            matching_artifacts.push(artifact)
+          else
+            rejected_artifacts.push(artifact)
+          end
+        end
+        return matching_artifacts,rejected_artifacts
+      end
+#---------------------#
       def find(item, type=@artifact_type)
         begin
           case type.to_s.downcase
@@ -626,7 +642,6 @@ module RallyEIF
         case @artifact_type.to_s.downcase
         when 'testcase'
           matching_artifacts = find_new_testcases()
-               
         when 'testrun'
           raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
         
@@ -664,52 +679,19 @@ module RallyEIF
         RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects in suite(s) '#{@all_suite_ids}'")
         @all_suites.each do |next_suite|
           begin
-             uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
-             returned_artifacts = @testrail.send_get(uri)
-             RallyLogger.debug(self, "Found '#{returned_artifacts.length}' testcases in suite id '#{next_suite['id']}'")
-             matching_artifacts = matching_artifacts + filter_out_already_connected(returned_artifacts)
-           rescue Exception => ex
-             RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-             RallyLogger.warning(self, "\t#{ex.message}")
-             raise UnrecoverableException.new("\tFailed to find new TestRail testcases", self)
-           end
-        end
-        return matching_artifacts
-      end
-#---------------------#
-      def filter_out_already_connected(artifacts)
-        #
-        # Find only the new artifacts
-        #
-        matching_artifacts = []
-        artifacts.each do |artifact|
-          if artifact["custom_#{@external_id_field.downcase}"].nil?
-            matching_artifacts.push(artifact)
+            uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
+            returned_artifacts = @testrail.send_get(uri)
+            RallyLogger.debug(self, "Found '#{returned_artifacts.length}' testcases in suite id '#{next_suite['id']}'")
+            kept,rejected = filter_out_already_connected(returned_artifacts)
+            RallyLogger.debug(self, "Filtered out '#{rejected.length}' of those because they are 'already connected'")
+            matching_artifacts = matching_artifacts + kept
+          rescue Exception => ex
+            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
+            RallyLogger.warning(self, "\t#{ex.message}")
+            raise UnrecoverableException.new("\tFailed to find new TestRail testcases", self)
           end
         end
         return matching_artifacts
-      end
-#---------------------#      
-      def find_test_runs()
-        plans = find_test_plans()
-        runs = []
-        run_ids = []
-        plans.each do |plan|
-          runs = runs.concat(plan['runs'])
-          run_ids = run_ids.concat(plan['run_ids'])
-        end
-        
-#        begin
-#          uri = "get_runs/#{@tr_project['id']}"
-#          orphan_runs = @testrail.send_get(uri)
-#          runs = orphan_runs.concat(runs)
-#        rescue Exception => ex
-#          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-#          RallyLogger.warning(self, "\t#{ex.message}")
-#          raise UnrecoverableException.new("\tFailed to find any Test Runs", self)
-#        end
-  
-        return runs,run_ids
       end
 #---------------------#      
       def find_test_for_run(run_id)
@@ -777,7 +759,7 @@ module RallyEIF
             run_id = run['id']
             uri = "get_results_for_run/#{run_id}"
             results = @testrail.send_get(uri)
-            filtered_results = filter_out_already_connected(results)
+            filtered_results,rejected_results = filter_out_already_connected(results)
             test_results = test_results.concat(filtered_results)
             # matching candidates are filtered below...
           rescue Exception => ex
@@ -805,6 +787,28 @@ module RallyEIF
         
         return filtered_test_results
       end
+#---------------------#      
+      def find_test_runs()
+        plans = find_test_plans()
+        runs = []
+        run_ids = []
+        plans.each do |plan|
+          runs = runs.concat(plan['runs'])
+          run_ids = run_ids.concat(plan['run_ids'])
+        end
+        
+#        begin
+#          uri = "get_runs/#{@tr_project['id']}"
+#          orphan_runs = @testrail.send_get(uri)
+#          runs = orphan_runs.concat(runs)
+#        rescue Exception => ex
+#          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
+#          RallyLogger.warning(self, "\t#{ex.message}")
+#          raise UnrecoverableException.new("\tFailed to find any Test Runs", self)
+#        end
+  
+        return runs,run_ids
+      end
 #---------------------#
       def find_updates(reference_time)
         RallyLogger.info(self, "Find updated TestRail '#{@artifact_type}' objects since '#{reference_time}'")
@@ -814,7 +818,7 @@ module RallyEIF
         when 'testcase'
           artifact_array = find_updates_testcase(reference_time)
         when 'testrun'
-          raise UnrecoverableException.new('Not available for "testrun": find_updates..', self)
+          raise UnrecoverableException.new('Not available for "testrun": find_updates...', self)
             
         when 'testresult'
           raise UnrecoverableException.new('Not available for "testresult": find_updates...', self)
@@ -852,6 +856,38 @@ module RallyEIF
         return matching_artifacts
       end
 #---------------------#
+      def get_all_sections()
+        case @tr_project_sm
+          when 1 # single suite
+          when 2 # 1+baselines
+            @all_suites = [{'id' => @tr_project['id']}]
+          when 3 # 3: multiple suites
+            if @all_suites.nil?
+              raise UnrecoverableException.new("No suites found? (can't continue)", self)
+            end
+          else
+            raise UnrecoverableException.new("Invalid value for suite_mode (#{@tr_project_sm})", self)
+        end
+        @all_sections = Array.new
+        @all_suites.each do |next_suite|
+          uri = "get_sections/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
+          begin  
+            sections = @testrail.send_get(uri)
+          rescue Exception => ex
+            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
+            RallyLogger.warning(self, "\t#{ex.message}")
+          end
+          @all_sections.push(sections)
+        end
+        return @all_sections.first || {}
+      end      
+#---------------------#
+      def get_all_suites()
+        uri = "get_suites/#{@tr_project['id']}"
+        @all_suites = @testrail.send_get(uri)
+        return @all_suites
+      end
+#---------------------#
 #      def get_default_section_id()
 #RallyLogger.debug(self,"JPKdebug: #{@tr_project['id']}")
 #RallyLogger.debug(self,"JPKdebug: get_sections/#{@tr_project['id']}")
@@ -884,38 +920,6 @@ module RallyEIF
         linktext = artifact[@id_field] || 'link'
         it = "<a href='https://#{@url}/#{artifact['id']}'>#{linktext}</a>"
         return it
-      end
-#---------------------#
-      def get_all_sections()
-        case @tr_project_sm
-          when 1 # single suite
-          when 2 # 1+baselines
-            @all_suites = [{'id' => @tr_project['id']}]
-          when 3 # 3: multiple suites
-            if @all_suites.nil?
-              raise UnrecoverableException.new("No suites found? (can't continue)", self)
-            end
-          else
-            raise UnrecoverableException.new("Invalid value for suite_mode (#{@tr_project_sm})", self)
-        end
-        @all_sections = Array.new
-        @all_suites.each do |next_suite|
-          uri = "get_sections/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
-          begin  
-            sections = @testrail.send_get(uri)
-          rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-            RallyLogger.warning(self, "\t#{ex.message}")
-          end
-          @all_sections.push(sections)
-        end
-        return @all_sections.first || {}
-      end      
-#---------------------#
-      def get_all_suites()
-        uri = "get_suites/#{@tr_project['id']}"
-        @all_suites = @testrail.send_get(uri)
-        return @all_suites
       end
 #---------------------#
       def get_value(artifact,field_name)
