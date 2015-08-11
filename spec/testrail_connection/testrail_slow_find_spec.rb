@@ -7,86 +7,153 @@ include YetiTestUtils
 describe "When trying to find TestRail items" do
 
   before(:each) do
-    @connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+
+    # Make a "Test Suite" connection.
+    config_testsuite = YetiTestUtils::modify_config_data(
+        TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
+        "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
+        "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
+        'TestSuite',                                #4 VALUE   - New value to put into NEWTAG
+        "replace",                                  #5 ACTION  - [before, after, replace, delete]
+        "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
+
+    # Make a "Test Section" connection.
+    config_testsection = YetiTestUtils::modify_config_data(
+        TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
+        "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
+        "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
+        'TestSection',                              #4 VALUE   - New value to put into NEWTAG
+        "replace",                                  #5 ACTION  - [before, after, replace, delete]
+        "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
+
     @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
-    @items_to_remove = []
+    
+    @connection_testcase    = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    @connection_testsuite   = testrail_connect(config_testsuite)
+    @connection_testsection = testrail_connect(config_testsection)
+    
+    @items_to_remove_testcase     = []
+    @items_to_remove_testsuite    = []
+    @items_to_remove_testsection  = []
   end
   
   after(:each) do    
-    @items_to_remove.each do |item|
-      @connection.delete(item)
-    end
-    @connection.disconnect()
+    @items_to_remove_testcase.each   { |item| @connection_testcase.delete(item)   } 
+    @items_to_remove_testsuite.each  { |item| @connection_testsuite.delete(item)  }
+    @items_to_remove_testsection.each{ |item| @connection_testsection.delete(item)}
   end
 
   it "(1), should find new test case without an externalid" do
-    #1 find all 'new' items
-    all_items_before = @connection.find_new()
-    
-    #2 create item
-    item,title = create_testrail_artifact(@connection)
-    @items_to_remove.push(item)
-   
-    #3 find all 'new' items again
-    all_items_after = @connection.find_new()
+    # 1 - Find all 'new' TestCases
+    all_items_before = @connection_testcase.find_new()
 
-    #4 second find should have more...
+    # 2 - Create a Suite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 3 - Create a Section
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+
+    # 4 - Create a TestCase
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @items_to_remove_testcase.push(testcase)
+    
+    # 5 - Find all 'new' TestCases again
+    @connection_testcase.connect() # must connect to refresh object's list of suites
+    all_items_after = @connection_testcase.find_new()
+
+    # 6 - Second find should have more...
     expect(all_items_before.length).to be < (all_items_after.length)
   end
   
   it "(2), should not find test case with an externalid" do
-    #1 find all 'new' items
-    all_items_before = @connection.find_new()
-    
-    #2 create item and give it an external id
-    item,title = create_testrail_artifact(@connection)
-    @items_to_remove.push(item)
-    new_id_value = @unique_number
-    @connection.update_external_id_fields(item, new_id_value, nil, nil)
+    # 1 - Find all 'new' TestCases
+    all_items_before = @connection_testcase.find_new()
+
+    # 2 - Create a Suite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 3 - Create a Section
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+
+    # 4 - Create a TestCase and give it an external id
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @items_to_remove_testcase.push(testcase)
+    @connection_testcase.update_external_id_fields(testcase, @unique_number, nil, nil)
    
-    #3 find all 'new' items again
-    all_items_after = @connection.find_new()
+    # 5 - Find all 'new' TestCases again
+    @connection_testcase.connect() # must connect to refresh object's list of suites
+    all_items_after = @connection_testcase.find_new()
     
-    #4 second find should have the same number of items
+    # 6 - Second find should have the same number of items
     expect(all_items_before.length).to eq(all_items_after.length)
   end
   
   it "(3), should not find test case without an externalid" do
-    #1 find all 'updated' items
+    # 1 - Find all 'updated' TestCases (they have an ExternalID)
     time = (Time.now() - 600).utc
-    all_items_before = @connection.find_updates(time)
+    all_items_before = @connection_testcase.find_updates(time)
     
-    #2 create item and give an ID
-    item,title = create_testrail_artifact(@connection)
-    @connection.update_external_id_fields(item, @unique_number , nil, nil)
-    @items_to_remove.push(item)
+    # 2 - Create a Suite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 3 - Create a Section
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+
+    # 4 - Create a TestCase and give it an external id
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @connection_testcase.update_external_id_fields(testcase, @unique_number, nil, nil)
+    @items_to_remove_testcase.push(testcase)
    
-    #3 find all 'updated' items again
-    all_items_after = @connection.find_updates(time)
+    # 5 - Find all 'updated' Testcases again
+    @connection_testcase.connect() # must connect to refresh object's list of suites
+    all_items_after = @connection_testcase.find_updates(time)
     
-    #4 second find should have more...
+    #6 - Second find should have more...
     expect(all_items_before.length).to be < (all_items_after.length)
   end
 
   it "(4), should not find updated test case without an externalid" do
-    #1 find all 'updated' items
+    # 1 - Find all 'updated' TestCases
     time = (Time.now() - 600).utc
-    all_items_before = @connection.find_updates(time)
+    all_items_before = @connection_testcase.find_updates(time)
     
-    #2 create item (it will not have a externalID)
-    item,title = create_testrail_artifact(@connection)
-    @items_to_remove.push(item)
+    # 2 - Create a Suite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 3 - Create a Section
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+    
+    # 4 - Create TestCase (it will not have a externalID)
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @items_to_remove_testcase.push(testcase)
    
-    #3 find all 'updated' items again (should not find our new item)
-    all_items_after = @connection.find_updates(time)
+    # 5 - Find all 'updated' TestCases again (should not find our new item)
+    @connection_testcase.connect() # must connect to refresh object's list of suites
+    all_items_after = @connection_testcase.find_updates(time)
     
-    #4 second find should have more...
+    # 6 - Second find should have more...
     expect(all_items_before.length).to eq(all_items_after.length)
     
-    #5 second find should not contain this item
+    # 7 - Second find should not contain this TestCase
     found_me = false
     all_items_after.each do |found_item|
-      if @connection.get_value(found_item,'title') == title
+      if @connection_testcase.get_value(found_item,'id') == testcase_id
         found_me = true
       end
     end
@@ -94,20 +161,31 @@ describe "When trying to find TestRail items" do
   end
 
   it "(5), should not find test case with an externalid updated before the timestamp" do
-    #1 create item and give an ExternalID (it will have a timestamp of 'now')
-    item,title = create_testrail_artifact(@connection)
-    @connection.update_external_id_fields(item, @unique_number , nil, nil)
-    @items_to_remove.push(item)
+    # 1 - Create a Suite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 2 - Create a Section
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+    
+    # 3 - Create a TestCase and give an ExternalID (it will have a timestamp of 'now')
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @connection_testcase.update_external_id_fields(testcase, @unique_number, nil, nil)
+    @items_to_remove_testcase.push(testcase)
    
-    #2 pause for 2 seconds, then find all items 'updated' after 'now'
+    # 4 - Pause for 2 seconds, then find all items 'updated' after 'now'
     sleep (2.0)
     time = Time.now().utc
-    all_items = @connection.find_updates(time)
+    @connection_testcase.connect() # must connect to refresh object's list of suites
+    all_items = @connection_testcase.find_updates(time)
 
-    #3  find should not contain this item
+    # 5 - Find should not contain this item
     found_me = false
     all_items.each do |found_item|
-      if @connection.get_value(found_item,'title') == title
+      if @connection.get_value(found_item,'id') == id
         found_me = true
       end
     end

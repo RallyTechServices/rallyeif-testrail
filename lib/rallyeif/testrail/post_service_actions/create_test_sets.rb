@@ -110,7 +110,7 @@ module RallyEIF
         def process_results(tr_testresults_list)
           RallyLogger.debug(self, "Running post process to associate test runs to test sets in Rally...")
          
-          runs = @other_connection.find_test_runs()
+          runs,run_ids = @other_connection.find_test_runs()
           
           runs.each do |run|
             run_name = "#{run['id']}: #{run['name']} #{run['config']}"
