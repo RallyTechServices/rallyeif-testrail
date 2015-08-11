@@ -46,7 +46,19 @@ module TestConfig
   TR_URL      = "https://tsrally.testrail.com"
   TR_USER     = "technical-services@rallydev.com"
   TR_PASSWORD = ""
-  TR_PROJECT  = ""
+  
+  test_suite_mode = 3 # Note: Aug-2015 - I have only tested suite-mode 3
+  case test_suite_mode
+  when 1
+    TR_PROJECT  = 'zRakeTest-sm1' # SuiteMode 1
+  when 2
+    TR_PROJECT  = 'zRakeTest-sm2' # SuiteMode 2
+  when 3
+    TR_PROJECT  = 'zRakeTest-sm3' # SuiteMode 3
+  else
+    puts "FATAL Internal Error in test_configuration_helper.rb"
+    exit
+  end
   
   # Required custom fields (must be created before running these tests):
   TR_EXTERNAL_ID_FIELD    = ""                  # type = Integer
