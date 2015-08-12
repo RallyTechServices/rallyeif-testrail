@@ -27,6 +27,7 @@ module RallyEIF
         end
 
         def find_rally_test_case_by_oid(oid)
+          
           begin
             query = RallyAPI::RallyQuery.new()
             query.type       = 'testcase'
@@ -38,10 +39,10 @@ module RallyEIF
             base_string = "( ObjectID = #{oid} )"
   
             query.query_string = base_string
-            RallyLogger.debug(self, "Rally using query: #{query.query_string}")
-  
+            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
             query_result = @rally_connection.rally.find(query)
   
+            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
@@ -60,9 +61,11 @@ module RallyEIF
             base_string = "( Name contains \"#{name}\" )"
   
             query.query_string = base_string
-            RallyLogger.debug(self, "Rally using query: #{query.query_string}")
+            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
             
             query_result = @rally_connection.rally.find(query)
+            
+            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
@@ -71,7 +74,7 @@ module RallyEIF
         end
         
         def create_rally_test_set(name,rally_test_case)
-          RallyLogger.debug(self, "Creating a TestSet named: '#{name}"'')
+          RallyLogger.debug(self, "Creating a TestSet named: '#{name}'")
           workproduct = rally_test_case['WorkProduct']
           new_test_set = nil
           
