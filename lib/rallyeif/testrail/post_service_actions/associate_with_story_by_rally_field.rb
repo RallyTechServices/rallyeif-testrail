@@ -75,6 +75,7 @@ module RallyEIF
         end
         
         def process_parents(tr_testcase_list)
+          #TODO -- change this to Test Sets to Projects and Iterations!
           RallyLogger.debug(self, "Running post process to associate test cases to stories in Rally...")
           # test plans will have a story FormattedID in the name to indicate they go to the story
           plans = @other_connection.find_test_plans()
