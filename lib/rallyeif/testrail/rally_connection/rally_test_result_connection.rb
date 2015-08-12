@@ -11,6 +11,10 @@ module RallyEIF
         super(config)
       end
 
+      def read_config(config)
+        super(config)
+      end
+      
       def validate()
         check = true
         rally_tc_field_handler = false
