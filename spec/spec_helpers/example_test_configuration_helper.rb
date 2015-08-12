@@ -28,8 +28,8 @@ module TestConfig
   
   # In order to run these test on a new TestRail setup, you'll need:
   # 01) A TestRail Project created.
-  # 02) A TestRail Section created.
-  # 03) A TestRail Milestone created.
+  # 02) Test Suites are created by the tests.
+  # 03) Test Sections are created by the tests (Milestones are not needed).
   # 04) Custom fields mentioned at the bottom of this module/file.
   # 05) The API must be enabled for your instance; otherwise you'll get error:
   #     TestRail api returned:TestRail API returned HTTP 403
@@ -49,11 +49,11 @@ module TestConfig
   test_suite_mode = 3 # Note: Aug-2015 - I have only tested suite-mode 3
   case test_suite_mode
   when 1
-    TR_PROJECT  = 'zRakeTest-sm1' # SuiteMode 1
+    TR_PROJECT = 'zRakeTest-sm1' # SuiteMode 1
   when 2
-    TR_PROJECT  = 'zRakeTest-sm2' # SuiteMode 2
+    TR_PROJECT = 'zRakeTest-sm2' # SuiteMode 2
   when 3
-    TR_PROJECT  = 'zRakeTest-sm3' # SuiteMode 3
+    TR_PROJECT = 'zRakeTest-sm3' # SuiteMode 3
   else
     puts "FATAL Internal Error in test_configuration_helper.rb"
     exit
@@ -74,8 +74,8 @@ module TestConfig
   # 8) Click 'OK'
   # 9) Click 'Add Field'
 
-  TR_ARTIFACT_TYPE        = "TestCase"          #
-  TR_ID_FIELD             = "id"                # type = Integer
+  TR_ARTIFACT_TYPE  = "TestCase"          #
+  TR_ID_FIELD       = "id"                # type = Integer
   
   # a field on a Rally STORY that will hold the Id of a TestRail Test Plan so we can associate
   # the test case(s) with a story
