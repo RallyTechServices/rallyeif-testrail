@@ -67,6 +67,7 @@ describe "When trying to find TestRail test case results" do
     @connection_testsuite   = testrail_connect(config_testsuite)
     @connection_testsection = testrail_connect(config_testsection)
     
+
     @items_to_remove_testcase     = []
     @items_to_remove_testresult   = []
     @items_to_remove_testrun      = []
@@ -117,7 +118,11 @@ describe "When trying to find TestRail test case results" do
     @items_to_remove_testplan.push(testplan)
 
     # 6 - Create a TestResult
-    extra_fields = { 'run_id' => testplan['entries'][0]['runs'][0]['id'], 'case_id' => testcase['id'] }
+    extra_fields = { 
+      'run_id' => testplan['entries'][0]['runs'][0]['id'], 
+      'case_id' => testcase['id'],
+      'section_id' => section['id']
+    }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
