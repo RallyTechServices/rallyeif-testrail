@@ -14,6 +14,9 @@ describe "When trying to find TestRail test case results" do
 
   before(:each) do
     
+    # Make a "TestCase" connection.
+    #     (already defined in TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    
     # Make a "TestResult" connection.
     config_testresult = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
@@ -32,7 +35,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Plan" connection.
+    # Make a "TestPlan" connection.
     config_testplan = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -41,7 +44,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
     
-    # Make a "Test Suite" connection.
+    # Make a "TestSuite" connection.
     config_testsuite = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -50,7 +53,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Section" connection.
+    # Make a "TestSection" connection.
     config_testsection = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
