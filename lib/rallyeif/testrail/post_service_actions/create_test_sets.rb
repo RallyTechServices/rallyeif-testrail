@@ -130,7 +130,7 @@ module RallyEIF
               story = find_rally_story_with_plan_id(plan_id)
 
               if story.total_result_count < 1
-                RallyLogger.warn(self, "Found no stories with a plan_id of '#{plan_id}'")
+                RallyLogger.warning(self, "Found no stories with a plan_id of '#{plan_id}'")
               else
                 # 4 - get project & iteration from the rally story
                 project = story.first.Project
@@ -202,7 +202,7 @@ module RallyEIF
           
           count = query_result.total_result_count
           if count < 1
-            RallyLogger.warn(self, "  Found no Rally stories with the plan_id")
+            RallyLogger.warning(self, "  Found no Rally stories with the plan_id")
           elsif count == 1
             fmtid = query_result.first.FormattedID
             RallyLogger.info(self, "  Found Rally story '#{fmtid}'")
@@ -211,9 +211,9 @@ module RallyEIF
             query_result.each do |us|
               fmtids.push(us.FormattedID)
             end
-            RallyLogger.warn(self, "  Found these '#{count}' Rally stories with same plan_id value: '#{fmtids}'")
+            RallyLogger.warning(self, "  Found these '#{count}' Rally stories with same plan_id value: '#{fmtids}'")
             fmtid = fmtids[0]
-            RallyLogger.warn(self, "  (will use the first: '#{fmtid}'")
+            RallyLogger.warning(self, "  (will use the first: '#{fmtid}'")
           end
 
           return query_result
