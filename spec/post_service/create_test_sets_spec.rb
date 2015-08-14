@@ -133,15 +133,17 @@ describe "When creating test sets for test case results" do
                                                         'case_ids'    => [testcase_id]
                                                      }]
                                  }]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     # 5 - Create a TestResult for the TestRun
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = {'run_id'      => run_id, 
-                    'case_id'     => testcase['id'],
-                    'section_id'  => section['id']}
+    extra_fields = {
+      'run_id'      => run_id, 
+      'case_id'     => testcase['id'],
+      'section_id'  => section['id']
+    }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
@@ -158,9 +160,9 @@ describe "When creating test sets for test case results" do
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
     
-    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
+    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:")
     expect(created_test_set).to_not be_nil
-    expect(created_test_set.Project.ObjectID).to eq("#{TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID}")
+    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID)
         
   end
   
@@ -188,29 +190,34 @@ describe "When creating test sets for test case results" do
                                                         'case_ids'   => [testcase_id]
                                                      }]
                                  }]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     # 5 - Create a TestResult for the TestRun
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = {'run_id'      => run_id, 
-                    'case_id'     => testcase['id'] ,
-                    'section_id'  => section['id']}
+    extra_fields = {
+      'run_id'      => run_id, 
+      'case_id'     => testcase['id'] ,
+      'section_id'  => section['id']
+    }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
 
     # 6 - Create a Rally Iteration
-    iteration_fields = {  "StartDate" => '2015-05-10',
-                          "EndDate"   => '2015-05-11',
-                          "State"     => "Planning"  }
+    iteration_fields = {
+      'StartDate' => '2015-05-10',
+      'EndDate'   => '2015-05-11',
+      'State'     => 'Planning'
+    }
     rally_iteration, rally_iteration_id = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
     @items_to_remove_rally.push(rally_iteration)
     
     # 7 - Create a Rally UserStory in the new Iteration
-    story_fields = {  'Iteration' => rally_iteration,
-                      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
-                   }
+    story_fields = {
+      'Iteration' => rally_iteration,
+      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
+    }
     rally_story, rally_id = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
@@ -246,20 +253,20 @@ describe "When creating test sets for test case results" do
     @items_to_remove_testcase.push(testcase)
     
     extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
-                      'include_all' => false,
-                      'case_ids'    => [testcase_id],
-                      'runs'        => [{  'include_all' => false, # Override selection
-                                            'case_ids'   => [testcase_id]
-                                       }]
-                  }]
+                                      'include_all' => false,
+                                      'case_ids'    => [testcase_id],
+                                      'runs'        => [{ 'include_all' => false, # Override selection
+                                                          'case_ids'    => [testcase_id]
+                                                       }]
+                                  }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     run_id = testplan['entries'][0]['runs'][0]['id']
     extra_fields = { 
-      'run_id' => run_id, 
-      'case_id' => testcase['id'] ,
+      'run_id'     => run_id, 
+      'case_id'    => testcase['id'] ,
       'section_id' => section['id']
     }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
@@ -271,7 +278,7 @@ describe "When creating test sets for test case results" do
     
     created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
     expect(created_test_set).to_not be_nil
-    expect(created_test_set.Project.ObjectID).to eq("#{TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID}")
+    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID)
     
   end
 end
