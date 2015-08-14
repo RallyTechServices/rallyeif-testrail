@@ -73,22 +73,11 @@ module RallyEIF
           return query_result.first
         end
         
-        def create_rally_test_set(name,rally_test_case)
+        def create_rally_test_set(name)
           RallyLogger.debug(self, "Creating a TestSet named: '#{name}'")
-          workproduct = rally_test_case['WorkProduct']
           new_test_set = nil
-          
-          if workproduct.nil?
-            RallyLogger.info(self, "Test Case is not associated with a Story")
-          else
-            # workproduct = @rally_connection.rally.read("hierarchicalrequirement", workproduct['ObjectID'])
-            iteration = workproduct['Iteration']
-            project = workproduct['Project']
-            RallyLogger.debug(self, "iteration: '#{iteration}', project: '#{project}'")
-          end
-          ts = { "Name" => name, "Iteration" => iteration, "Project" => project }
+          ts = { "Name" => name }
           new_test_set = @rally_connection.rally.create('testset',ts)
-          
           return new_test_set
         end
         
@@ -118,31 +107,50 @@ module RallyEIF
           runs.each do |run|
             run_name = "#{run['id']}: #{run['name']} #{run['config']}"
             
-            tests = @other_connection.find_test_for_run(run['id'])
-            
             rally_test_set = nil
 
-            tests.each do |test|
-              # RallyLogger.debug(self, "--Test: #{test}")
-              rally_oid = test["custom_#{@other_connection.external_id_field.downcase}"]
+            # RallyLogger.debug(self, "--Test: #{test}")
+            # 1 - create testset
+            # 2 - find testplan id for this testrun
+            # 3 - find story in rally with the testplan id
+            # 4 - get rally story proj/iter
+            # 5 - add to testset
+            # 6 - ???
 
-              if !rally_oid.nil?
-                rally_test_case = find_rally_test_case_by_oid(rally_oid)
-                #if !rally_test_case.nil?
-                  #rally_test_set = find_rally_test_set_by_name(run_name)
-                  rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
-                  if rally_test_set.nil?
-                    rally_test_set = create_rally_test_set(run_name,rally_test_case)
-                  end
-                  if !rally_test_set.nil?
-                    add_testcase_to_test_set(rally_test_case,rally_test_set)
-                  end
-                #else
-                  #RallyLogger.info(self, "Couldn't find Rally test case for: '#{test['case_id']}'")
-                #end
-
+            # 1 - create testset
+            rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
+            if rally_test_set.nil?
+              rally_test_set = create_rally_test_set(run_name)
+            end
+            
+            
+            if !rally_test_set.nil?
+              # 2 - find testplan id for this testrun
+              plan_id = run['plan_id']
+              
+              # 3 - find story in rally with the testplan id
+              story = find_rally_story_with_plan_id(plan_id)
+              if story.total_result_count > 0
+                
+                # 4 - get rally story proj/iter
+#require 'pry-debugger';binding.pry
+                project = story.first.Project
+                iteration = story.first.Iteration
+                
+                # 5 - add to testset
+                #fields = {
+                #  "Project"   => {'_ref'=> project['_ref']},
+                #  "Iteration" => {'_ref'=> iteration['_ref']}
+                #}
+#####################################
+                fields = {'Project' => {'_ref'=> project['_ref']}}
+                if !iteration.nil?
+                  fields['Iteration'] =  {'_ref'=> iteration['_ref']}
+                end
+#####################################
+                rally_test_set.update(fields)
               else
-                RallyLogger.info(self, "Skip test case that's not connected to Rally: '#{test['case_id']}'")
+                #RallyLogger.debug(self, "Found no stories with a plan_id value")
               end
             end
           end
@@ -171,8 +179,46 @@ module RallyEIF
           RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
         end
 
+        def find_rally_story_with_plan_id(plan_id)
+          plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
+          RallyLogger.info(self, "Find Rally Story with '#{plan_id}' in '#{plan_id_field_on_stories}'")
+          @rally = @rally_connection.rally
+          
+          begin
+            query            = RallyAPI::RallyQuery.new()
+            query.type       = 'hierarchicalrequirement'
+            query.workspace  = @rally_connection.workspace
+            query.fetch      = "FormattedID,Name,Project,Iteration,#{plan_id_field_on_stories}"
+            query.limit      = 1 # We want only one
+            query.page_size  = 1 # Be sure we do get more in background
+    
+            base_query = "(#{plan_id_field_on_stories} != \"\")"
+            ##projects_q = []
+            ##@rally_connection.projects.each { |prj| projects_q << "Project.Name = \"#{prj["Name"]}\"" }
+            #builds big or part of query with projects
+            ##prj_string = query.build_query_segment(projects_q, "OR")
+            ##base_query = query.add_and(base_string, prj_string)
+     
+            if @rally_connection.copy_selectors.length > 0
+              @rally_connection.each do |cs|
+                addition = "(#{cs.field} #{cs.relation} \"#{cs.value}\")"
+                base_query = query.add_and(base_query, addition)
+              end
+            end
+     
+            query.query_string = base_query
+            RallyLogger.debug(self, "Rally using query: '#{query.query_string}'")
+            query_result = @rally.find(query)
+     
+          rescue Exception => ex
+            raise UnrecoverableException.copy(ex, self)
+          end
+     
+          RallyLogger.info(self, "  Found '#{query_result.total_result_count}' Stories in Rally")
+          return query_result
+        end # of 'def find_rally_story_with_plan_id(plan_id)'
+        
       end
-
     end
   end
 end
