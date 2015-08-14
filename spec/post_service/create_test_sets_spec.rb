@@ -15,7 +15,19 @@ describe "When creating test sets for test case results" do
   
   before(:each) do
     
-    # Make a "TestRun" connection.
+    # Make a "TestCase" connection.
+    #    (already defined in TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG)
+
+    # Make a "TestResult" connection.
+    config_testresult = YetiTestUtils::modify_config_data(
+        TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
+        "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
+        "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
+        'TestResult',                               #4 VALUE   - New value to put into NEWTAG
+        "replace",                                  #5 ACTION  - [before, after, replace, delete]
+        "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION        
+
+        # Make a "TestRun" connection.
     config_testrun = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -24,7 +36,7 @@ describe "When creating test sets for test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Plan" connection.
+    # Make a "TestPlan" connection.
     config_testplan = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -33,7 +45,7 @@ describe "When creating test sets for test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
     
-    # Make a "Test Suite" connection.
+    # Make a "TestSuite" connection.
     config_testsuite = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -42,7 +54,7 @@ describe "When creating test sets for test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Section" connection.
+    # Make a "TestSection" connection.
     config_testsection = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -50,17 +62,12 @@ describe "When creating test sets for test case results" do
         'TestSection',                              #4 VALUE   - New value to put into NEWTAG
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION    
-
-    # Make a "Test Section" connection.
-    config_testresult = YetiTestUtils::modify_config_data(
-        TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG, #1 CONFIG  - The config file to be augmented
-        "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
-        "ArtifactType",                             #3 NEWTAG  - New tag name in reference to REFTAG
-        'TestResult',                               #4 VALUE   - New value to put into NEWTAG
-        "replace",                                  #5 ACTION  - [before, after, replace, delete]
-        "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION    
-        
-    @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + Time.now.usec.to_s
+    
+    # Make a 19-digit (somewhat) random number because:
+    # - we want it to be 19 digits always (not 18 sometimes)
+    # - 19 is less than 2^64 (our OID limitation)
+    micro_secs = sprintf('%07d', Time.now.usec)[-5..-1]
+    @unique_number = Time.now.strftime("%Y%m%d%H%M%S") + micro_secs
     
     @connection_testcase    = testrail_connect(TestRailSpecHelper::TESTRAIL_STORY_FIELD_TO_ASSOCIATE_PLAN_CONFIG)
     @connection_testresult  = testrail_connect(config_testresult)    
@@ -102,116 +109,137 @@ describe "When creating test sets for test case results" do
 #    
 #  end
 #  
-  it "should put the test set into the same project as a story that is linked to the test run's test plan" do
-    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
-        @items_to_remove_testsuite.push(suite)
-    
-        extra_fields = {'suite_id' => suite_id}
-        section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
-        @items_to_remove_testsection.push(section)
-    
-        extra_fields = {'section_id' => section_id}
-        testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
-        @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
-        @items_to_remove_testcase.push(testcase)
-        
-        extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
-                          'include_all' => false,
-                          'case_ids'    => [testcase_id],
-                          'runs'        => [{  'include_all' => false, # Override selection
-                                                'case_ids'   => [testcase_id]
-                                           }]
-                      }]
-        }
-        testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
-        @items_to_remove_testplan.push(testplan)
-    
-        run_id = testplan['entries'][0]['runs'][0]['id']
-        extra_fields = { 
-          'run_id' => run_id, 
-          'case_id' => testcase['id'] ,
-          'section_id' => section['id']
-        }
-        testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
-        @items_to_remove_testresult.push(testresult)
-        
-        story_fields = { 
-          'Project' => TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID, #a child project
-          TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
-        }
-        rally_story, rally_id = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
-        @items_to_remove_rally.push(rally_story)
-    
-        @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
-        @service_action.setup('', @rally_connection, @connection_testresult)
-        @service_action.perform_post_service_action(:copy_to_rally,[])
-        
-        created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
-        expect(created_test_set).to_not be_nil
-        expect(created_test_set.Project.ObjectID).to eq("#{TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID}")
-        
-  end
-  
-  it "should put the test set into the same iteration as a story that is linked to the test run's test plan" do
-    #
+  it "(1), should put the test set into the same project as a story that is linked to the test run's test plan" do
+    # 1 - Create a TestSuite
     suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
     @items_to_remove_testsuite.push(suite)
 
+    # 2 - Create a TestSection
     extra_fields = {'suite_id' => suite_id}
     section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
     @items_to_remove_testsection.push(section)
 
+    # 3 - Create a Testcase
     extra_fields = {'section_id' => section_id}
     testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
     @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase)
     
-    extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
-                      'include_all' => false,
-                      'case_ids'    => [testcase_id],
-                      'runs'        => [{  'include_all' => false, # Override selection
-                                            'case_ids'   => [testcase_id]
-                                       }]
-                  }]
+    # 4 - Create a TestPlan with a TestRun for the aboe TestCase
+    extra_fields = {'entries' => [{ 'suite_id'    => suite_id,
+                                    'include_all' => false,
+                                    'case_ids'    => [testcase_id],
+                                    'runs'        => [{ 'include_all' => false,
+                                                        'case_ids'    => [testcase_id]
+                                                     }]
+                                 }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
+    # 5 - Create a TestResult for the TestRun
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = { 
-      'run_id' => run_id, 
-      'case_id' => testcase['id'] ,
-      'section_id' => section['id']
+    extra_fields = {
+      'run_id'      => run_id, 
+      'case_id'     => testcase['id'],
+      'section_id'  => section['id']
     }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
-    iteration_fields = {
-      "StartDate" => '2015-05-10',
-      "EndDate" => '2015-05-11',
-      "State" => "Planning"
+    # 6 - Create a Rally UserStory with a TestPlan ID
+    story_fields = { 
+      'Project' => TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID, # a child project
+      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id']   # associate story with plan
     }
-    rally_iteration, rally_iteration_id = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
+    rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
+    @items_to_remove_rally.push(rally_story)
+
+    # 7 - Create a test sets
+    @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
+    @service_action.setup('', @rally_connection, @connection_testresult)
+    @service_action.perform_post_service_action(:copy_to_rally,[])
+    
+    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:")
+    expect(created_test_set).to_not be_nil
+    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID)
+        
+  end
+  
+  it "(2), should put the test set into the same iteration as a story that is linked to the test run's test plan" do
+    # 1 - Create a TestSuite
+    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+    @items_to_remove_testsuite.push(suite)
+
+    # 2 - Create a TestSection
+    extra_fields = {'suite_id' => suite_id}
+    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+    @items_to_remove_testsection.push(section)
+
+    # 3 - Create a Testcase
+    extra_fields = {'section_id' => section_id}
+    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+    @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
+    @items_to_remove_testcase.push(testcase)
+
+    # 4 - Create a TestPlan with a TestRun for the aboe TestCase
+    extra_fields = {'entries' => [{ 'suite_id'    => suite_id,
+                                    'include_all' => false,
+                                    'case_ids'    => [testcase_id],
+                                    'runs'        => [{ 'include_all' => false,
+                                                        'case_ids'   => [testcase_id]
+                                                     }]
+                                 }]
+    }
+    testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
+    @items_to_remove_testplan.push(testplan)
+
+    # 5 - Create a TestResult for the TestRun
+    run_id = testplan['entries'][0]['runs'][0]['id']
+    extra_fields = {
+      'run_id'      => run_id, 
+      'case_id'     => testcase['id'] ,
+      'section_id'  => section['id']
+    }
+    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
+    @items_to_remove_testresult.push(testresult)
+
+    # 6 - Create a Rally Iteration
+    iteration_fields = {
+      'StartDate' => '2015-05-10',
+      'EndDate'   => '2015-05-11',
+      'State'     => 'Planning'
+    }
+    rally_iteration, rally_iteration_name = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
     @items_to_remove_rally.push(rally_iteration)
     
-    story_fields = { 
+    # 7 - Create a Rally UserStory in the new Iteration with a TestPlan ID
+    story_fields = {
       'Iteration' => rally_iteration,
       TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
     }
-    rally_story, rally_id = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
+    rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
+    # 8 - Perform the POST_SERVICE_ACTION...
     @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
+
+    # 9 - Try to find the Rally TestSet
+    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:")
     
-    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
+    # 10 - It should exist
     expect(created_test_set).to_not be_nil
-    expect(created_test_set.Iteration.ObjectID).to eq(iteration.ObjectID)
+    
+    # 11 - The new Rally TestSet should be in the same iteration as the story
+    #expect(created_test_set.Iteration.ObjectID).to eq(iteration.ObjectID)
+    # jp changed it:
+    expect(created_test_set.Iteration.ObjectID).to eq(rally_iteration.ObjectID)
     
   end
   
-  it "should put the test set into the default project if there is not a story linked to the test run's test plan" do
+  it "(3), should put the test set into the default project if there is not a story linked to the test run's test plan" do
     suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
     @items_to_remove_testsuite.push(suite)
 
@@ -225,20 +253,20 @@ describe "When creating test sets for test case results" do
     @items_to_remove_testcase.push(testcase)
     
     extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
-                      'include_all' => false,
-                      'case_ids'    => [testcase_id],
-                      'runs'        => [{  'include_all' => false, # Override selection
-                                            'case_ids'   => [testcase_id]
-                                       }]
-                  }]
+                                      'include_all' => false,
+                                      'case_ids'    => [testcase_id],
+                                      'runs'        => [{ 'include_all' => false, # Override selection
+                                                          'case_ids'    => [testcase_id]
+                                                       }]
+                                  }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     run_id = testplan['entries'][0]['runs'][0]['id']
     extra_fields = { 
-      'run_id' => run_id, 
-      'case_id' => testcase['id'] ,
+      'run_id'     => run_id, 
+      'case_id'    => testcase['id'] ,
       'section_id' => section['id']
     }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
@@ -250,7 +278,7 @@ describe "When creating test sets for test case results" do
     
     created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
     expect(created_test_set).to_not be_nil
-    expect(created_test_set.Project.ObjectID).to eq("#{TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID}")
+    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID)
     
   end
 end
