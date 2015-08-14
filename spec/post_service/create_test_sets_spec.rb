@@ -147,15 +147,15 @@ describe "When creating test sets for test case results" do
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
-    # 6 - Create a Rally UserStory
+    # 6 - Create a Rally UserStory with a TestPlan ID
     story_fields = { 
       'Project' => TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID, # a child project
       TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id']   # associate story with plan
     }
-    rally_story, rally_id = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
+    rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
-    # 7 - Create a test set??????
+    # 7 - Create a test sets
     @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
@@ -210,15 +210,15 @@ describe "When creating test sets for test case results" do
       'EndDate'   => '2015-05-11',
       'State'     => 'Planning'
     }
-    rally_iteration, rally_iteration_id = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
+    rally_iteration, rally_iteration_name = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
     @items_to_remove_rally.push(rally_iteration)
     
-    # 7 - Create a Rally UserStory in the new Iteration
+    # 7 - Create a Rally UserStory in the new Iteration with a TestPlan ID
     story_fields = {
       'Iteration' => rally_iteration,
       TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
     }
-    rally_story, rally_id = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
+    rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
     # 8 - Perform the POST_SERVICE_ACTION...
