@@ -105,19 +105,17 @@ module RallyEIF
           runs,run_ids = @other_connection.find_test_runs()
           
           runs.each do |run|
-            run_name = "#{run['id']}: #{run['name']} #{run['config']}"
-            
+            #-----
+            # 1 - create a new testset for this testrun
+            # 2 - get the testplan id for this testrun
+            # 3 - find the rally story(s) which contains the testplan id
+            # 4 - get project & iteration from the rally story
+            # 5 - add project & iteration to new testset
+            #-----
+
+            # 1 - create a new testset for this testrun
             rally_test_set = nil
-
-            # RallyLogger.debug(self, "--Test: #{test}")
-            # 1 - create testset
-            # 2 - find testplan id for this testrun
-            # 3 - find story in rally with the testplan id
-            # 4 - get rally story proj/iter
-            # 5 - add to testset
-            # 6 - ???
-
-            # 1 - create testset
+            run_name = "#{run['id']}: #{run['name']} #{run['config']}"
             rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
             if rally_test_set.nil?
               rally_test_set = create_rally_test_set(run_name)
@@ -125,32 +123,25 @@ module RallyEIF
             
             
             if !rally_test_set.nil?
-              # 2 - find testplan id for this testrun
+              # 2 - get the testplan id for this testrun
               plan_id = run['plan_id']
               
-              # 3 - find story in rally with the testplan id
+              # 3 - find the rally story(s) which contains the testplan id
               story = find_rally_story_with_plan_id(plan_id)
-              if story.total_result_count > 0
-                
-                # 4 - get rally story proj/iter
-#require 'pry-debugger';binding.pry
+
+              if story.total_result_count < 1
+                RallyLogger.warn(self, "Found no stories with a plan_id of '#{plan_id}'")
+              else
+                # 4 - get project & iteration from the rally story
                 project = story.first.Project
                 iteration = story.first.Iteration
                 
-                # 5 - add to testset
-                #fields = {
-                #  "Project"   => {'_ref'=> project['_ref']},
-                #  "Iteration" => {'_ref'=> iteration['_ref']}
-                #}
-#####################################
+                # 5 - add project & iteration to new testset
                 fields = {'Project' => {'_ref'=> project['_ref']}}
                 if !iteration.nil?
                   fields['Iteration'] =  {'_ref'=> iteration['_ref']}
                 end
-#####################################
                 rally_test_set.update(fields)
-              else
-                #RallyLogger.debug(self, "Found no stories with a plan_id value")
               end
             end
           end
@@ -190,14 +181,9 @@ module RallyEIF
             query.workspace  = @rally_connection.workspace
             query.fetch      = "FormattedID,Name,Project,Iteration,#{plan_id_field_on_stories}"
             query.limit      = 1 # We want only one
-            query.page_size  = 1 # Be sure we do get more in background
+            query.page_size  = 1 # Be sure we do get more delivered in the background
     
             base_query = "(#{plan_id_field_on_stories} != \"\")"
-            ##projects_q = []
-            ##@rally_connection.projects.each { |prj| projects_q << "Project.Name = \"#{prj["Name"]}\"" }
-            #builds big or part of query with projects
-            ##prj_string = query.build_query_segment(projects_q, "OR")
-            ##base_query = query.add_and(base_string, prj_string)
      
             if @rally_connection.copy_selectors.length > 0
               @rally_connection.each do |cs|
@@ -213,8 +199,23 @@ module RallyEIF
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
-     
-          RallyLogger.info(self, "  Found '#{query_result.total_result_count}' Stories in Rally")
+          
+          count = query_result.total_result_count
+          if count < 1
+            RallyLogger.warn(self, "  Found no Rally stories with the plan_id")
+          elsif count == 1
+            fmtid = query_result.first.FormattedID
+            RallyLogger.info(self, "  Found Rally story '#{fmtid}'")
+          else # if it was more than one story found...
+            fmtids = Array.new
+            query_result.each do |us|
+              fmtids.push(us.FormattedID)
+            end
+            RallyLogger.warn(self, "  Found these '#{count}' Rally stories with same plan_id value: '#{fmtids}'")
+            fmtid = fmtids[0]
+            RallyLogger.warn(self, "  (will use the first: '#{fmtid}'")
+          end
+
           return query_result
         end # of 'def find_rally_story_with_plan_id(plan_id)'
         
