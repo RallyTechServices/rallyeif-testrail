@@ -26,36 +26,35 @@ module RallyEIF
           process_results(item_list)
         end
 
-        def find_rally_test_case_by_oid(oid)
-          
-          begin
-            query = RallyAPI::RallyQuery.new()
-            query.type       = 'testcase'
-            query.workspace  = @rally_connection.workspace
-            #query.fetch      = "true"
-            query.fetch      = "FormattedID,Name,Iteration,Project,WorkProduct,ObjectID"
-            query.limit      = 1
-  
-            base_string = "( ObjectID = #{oid} )"
-  
-            query.query_string = base_string
-            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
-            query_result = @rally_connection.rally.find(query)
-  
-            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
-          rescue Exception => ex
-            raise UnrecoverableException.copy(ex, self)
-          end
-          
-          return query_result.first
-        end
+#        def find_rally_test_case_by_oid(oid)
+#          begin
+#            query = RallyAPI::RallyQuery.new()
+#            query.type       = 'testcase'
+#            query.workspace  = @rally_connection.workspace
+#            #query.fetch      = "true"
+#            query.fetch      = "FormattedID,Name,Iteration,Project,WorkProduct,ObjectID"
+#            query.limit      = 1
+#  
+#            base_string = "( ObjectID = #{oid} )"
+#  
+#            query.query_string = base_string
+#            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
+#            query_result = @rally_connection.rally.find(query)
+#  
+#            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
+#          rescue Exception => ex
+#            raise UnrecoverableException.copy(ex, self)
+#          end
+#          
+#          return query_result.first
+#        end # of 'def find_rally_test_case_by_oid(oid)'
         
         def find_rally_test_set_by_name(name)
           begin
-            query = RallyAPI::RallyQuery.new()
+            query            = RallyAPI::RallyQuery.new()
             query.type       = 'testset'
             query.workspace  = @rally_connection.workspace
-            query.fetch      = "FormattedID,Name,Iteration,Project,ObjectID"
+            query.fetch      = 'FormattedID,Name,Iteration,Project,ObjectID'
             query.limit      = 1
   
             base_string = "( Name contains \"#{name}\" )"
@@ -71,20 +70,20 @@ module RallyEIF
           end
           
           return query_result.first
-        end
+        end # of 'def find_rally_test_set_by_name(name)'
         
         def create_rally_test_set(name)
-          RallyLogger.debug(self, "Creating a TestSet named: '#{name}'")
+          RallyLogger.debug(self, "Creating a Rally TestSet named: '#{name}'")
           new_test_set = nil
-          ts = { "Name" => name }
+          ts = { 'Name' => name }
           new_test_set = @rally_connection.rally.create('testset',ts)
           return new_test_set
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
-          RallyLogger.info(self, "Adding '#{rally_test_case}' to '#{rally_test_set}'")
+          RallyLogger.info(self, "In Rally, adding TestCase '#{rally_test_case}' to TestSet '#{rally_test_set['ObjectID']}'")
           
-          test_set = @rally_connection.rally.read("testset", rally_test_set['ObjectID'])
+          test_set = @rally_connection.rally.read('testset', rally_test_set['ObjectID'])
           
           associated_test_cases = test_set['TestCases'] || []
           associated_test_cases = associated_test_cases.push(rally_test_case)
@@ -92,12 +91,12 @@ module RallyEIF
           refs = []
             
           associated_test_cases.each do |tc|
-            refs.push({"_ref"=> tc['_ref']})
+            refs.push({'_ref'=> tc['_ref']})
           end
 
-          fields = { "TestCases" => refs }
+          fields = { 'TestCases' => refs }
           rally_test_set.update(fields)
-        end
+        end # of 'def add_testcase_to_test_set(rally_test_case,rally_test_set)'
         
         def process_results(tr_testresults_list)
           RallyLogger.debug(self, "Running post process to associate test runs to test sets in Rally...")
@@ -106,23 +105,26 @@ module RallyEIF
           
           runs.each do |run|
             #-----
-            # 1 - create a new testset for this testrun
+            # 1 - find or create a testset for this testrun
             # 2 - get the testplan id for this testrun
             # 3 - find the rally story(s) which contains the testplan id
             # 4 - get project & iteration from the rally story
             # 5 - add project & iteration to new testset
             #-----
 
-            # 1 - create a new testset for this testrun
+            # 1 - find or create a testset for this testrun
             rally_test_set = nil
-            run_name = "#{run['id']}: #{run['name']} #{run['config']}"
+            # 1.1 - Does a testset for this test run already exist in Rally?
             rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
             if rally_test_set.nil?
+              # 1.2 - If not, create one
+              run_name = "#{run['id']}: #{run['name']} #{run['config']}"
               rally_test_set = create_rally_test_set(run_name)
             end
             
-            
-            if !rally_test_set.nil?
+            if rally_test_set.nil?
+              RallyLogger.error(self, "Failed to find or create a testset in Rally")
+            else
               # 2 - get the testplan id for this testrun
               plan_id = run['plan_id']
               
@@ -160,7 +162,7 @@ module RallyEIF
             end
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
             if !rally_result.nil? && !rally_test_set.nil?
-              fields = {"TestSet"=>{'_ref'=>rally_test_set['_ref']}}
+              fields = { 'TestSet' => {'_ref'=>rally_test_set['_ref']} }
               rally_result.update(fields)
             else
               RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
@@ -168,11 +170,11 @@ module RallyEIF
           end
           
           RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
-        end
+        end # of 'def process_results(tr_testresults_list)'
 
         def find_rally_story_with_plan_id(plan_id)
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
-          RallyLogger.info(self, "Find Rally Story with '#{plan_id}' in '#{plan_id_field_on_stories}'")
+          RallyLogger.info(self, "Find Rally Story with plan_id '#{plan_id}' in '#{plan_id_field_on_stories}'")
           @rally = @rally_connection.rally
           
           begin
@@ -181,11 +183,13 @@ module RallyEIF
             query.workspace  = @rally_connection.workspace
             query.fetch      = "FormattedID,Name,Project,Iteration,#{plan_id_field_on_stories}"
             query.limit      = 1 # We want only one
-            query.page_size  = 1 # Be sure we do get more delivered in the background
+            query.page_size  = 1 # Be sure we don't get more delivered in the background
     
             base_query = "(#{plan_id_field_on_stories} != \"\")"
      
             if @rally_connection.copy_selectors.length > 0
+# Hey JohnM: Should the line below be:
+#            @rally_connection.copy_selectors.each ...              
               @rally_connection.each do |cs|
                 addition = "(#{cs.field} #{cs.relation} \"#{cs.value}\")"
                 base_query = query.add_and(base_query, addition)
@@ -195,14 +199,13 @@ module RallyEIF
             query.query_string = base_query
             RallyLogger.debug(self, "Rally using query: '#{query.query_string}'")
             query_result = @rally.find(query)
-     
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
-          
+
           count = query_result.total_result_count
           if count < 1
-            RallyLogger.warning(self, "  Found no Rally stories with the plan_id")
+            #RallyLogger.warning(self, "  Found no Rally stories with the plan_id")
           elsif count == 1
             fmtid = query_result.first.FormattedID
             RallyLogger.info(self, "  Found Rally story '#{fmtid}'")
@@ -213,13 +216,15 @@ module RallyEIF
             end
             RallyLogger.warning(self, "  Found these '#{count}' Rally stories with same plan_id value: '#{fmtids}'")
             fmtid = fmtids[0]
-            RallyLogger.warning(self, "  (will use the first: '#{fmtid}'")
+            RallyLogger.warning(self, "  (will use the first: '#{fmtid}')")
           end
 
           return query_result
         end # of 'def find_rally_story_with_plan_id(plan_id)'
         
-      end
-    end
-  end
-end
+      end # of 'class CreateTestSets < PostServiceAction'
+      
+    end # of 'module PostServiceActions'
+  end # of 'module WRK'
+end # of 'module RallyEIF'
+
