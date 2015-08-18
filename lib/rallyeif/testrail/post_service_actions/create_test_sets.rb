@@ -184,8 +184,8 @@ module RallyEIF
               RallyLogger.debug(self, "Found '#{testcases_for_run.length}' testcases for run_id '#{run['id']}'")
               rally_testcase_oids = []
               testcases_for_run.each do |testcase|
-                if !testcase[cfsys(TestConfig::TR_EXTERNAL_ID_FIELD)].nil?
-                  rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(TestConfig::TR_EXTERNAL_ID_FIELD)])
+                if !testcase[cfsys(@other_connection.external_id_field)].nil?
+                  rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(@other_connection.external_id_field)])
                   add_testcase_to_test_set(rally_testcase,rally_test_set)
                 else
                   RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
@@ -199,7 +199,7 @@ module RallyEIF
             #RallyLogger.debug(self,"TestRail testresult: '#{testresult}'")
             RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
             RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
-            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase'][cfsys(TestConfig::TR_EXTERNAL_EU_ID_FIELD)]}'")
+            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase'][cfsys(@other_connection.external_end_user_id_field)]}'")
             rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
             if rally_test_set.nil?
               RallyLogger.debug(self,"test: <no test set found in Rally>")
