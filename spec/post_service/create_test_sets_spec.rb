@@ -122,40 +122,28 @@ describe "When creating test sets for test case results" do
     # 3 - Create a Testcase
     extra_fields = {'section_id' => section_id}
     testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
-    @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase)
-    
-    # 4 - Create a TestPlan with a TestRun for the aboe TestCase
+
+    # 4 - Create a TestPlan with a TestRun for the above TestCase
     extra_fields = {'entries' => [{ 'suite_id'    => suite_id,
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id],
-                                    'runs'        => [{ 'include_all' => false,
-                                                        'case_ids'    => [testcase_id]
-                                                     }]
+                                    'runs'        => [{'include_all' => true}]
                                  }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
-
-    # 5 - Create a TestResult for the TestRun
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = {
-      'run_id'      => run_id, 
-      'case_id'     => testcase['id'],
-      'section_id'  => section['id']
-    }
-    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
-    @items_to_remove_testresult.push(testresult)
     
-    # 6 - Create a Rally UserStory with a TestPlan ID
+    # 5 - Create a Rally UserStory with the child project with a TestPlan ID
     story_fields = { 
       'Project' => TestConfig::RALLY_PROJECT_HIERARCHICAL_CHILD_OID, # a child project
-      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id']   # associate story with plan
+      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan_id      # associate story with plan
     }
     rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
-    # 7 - Create a test sets
+    # 6 - Create a test set in Rally
     @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
@@ -179,32 +167,20 @@ describe "When creating test sets for test case results" do
     # 3 - Create a Testcase
     extra_fields = {'section_id' => section_id}
     testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
-    @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase)
 
-    # 4 - Create a TestPlan with a TestRun for the aboe TestCase
+    # 4 - Create a TestPlan with a TestRun for the above TestCase
     extra_fields = {'entries' => [{ 'suite_id'    => suite_id,
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id],
-                                    'runs'        => [{ 'include_all' => false,
-                                                        'case_ids'   => [testcase_id]
-                                                     }]
+                                    'runs'        => [{'include_all' => true}]
                                  }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
-
-    # 5 - Create a TestResult for the TestRun
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = {
-      'run_id'      => run_id, 
-      'case_id'     => testcase['id'] ,
-      'section_id'  => section['id']
-    }
-    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
-    @items_to_remove_testresult.push(testresult)
 
-    # 6 - Create a Rally Iteration
+    # 5 - Create a Rally Iteration
     iteration_fields = {
       'StartDate' => '2015-05-10',
       'EndDate'   => '2015-05-11',
@@ -213,69 +189,62 @@ describe "When creating test sets for test case results" do
     rally_iteration, rally_iteration_name = YetiTestUtils::create_arbitrary_rally_artifact('Iteration',@rally_connection, iteration_fields)
     @items_to_remove_rally.push(rally_iteration)
     
-    # 7 - Create a Rally UserStory in the new Iteration with a TestPlan ID
+    # 6 - Create a Rally UserStory in the new Iteration with a TestPlan ID
     story_fields = {
       'Iteration' => rally_iteration,
-      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan['id'] #associate story with plan
+      TestConfig::TR_RALLY_FIELD_TO_HOLD_PLAN_ID => testplan_id #associate story with plan
     }
     rally_story, rally_story_name = YetiTestUtils::create_arbitrary_rally_artifact('HierarchicalRequirement',@rally_connection, story_fields)
     @items_to_remove_rally.push(rally_story)
 
-    # 8 - Perform the POST_SERVICE_ACTION...
+    # 7 - Perform the POST_SERVICE_ACTION...
     @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
 
-    # 9 - Try to find the Rally TestSet
+    # 8 - Try to find the Rally TestSet
     created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:")
     
-    # 10 - It should exist
+    # 9 - It should exist
     expect(created_test_set).to_not be_nil
     
-    # 11 - The new Rally TestSet should be in the same iteration as the story
-    #expect(created_test_set.Iteration.ObjectID).to eq(iteration.ObjectID)
-    # jp changed it:
+    # 10 - The new Rally TestSet should be in the same iteration as the story
     expect(created_test_set.Iteration.ObjectID).to eq(rally_iteration.ObjectID)
     
   end
   
   it "(3), should put the test set into the default project if there is not a story linked to the test run's test plan" do
+    # 1 - Create a TestSuite
     suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
     @items_to_remove_testsuite.push(suite)
 
+    # 2 - Create a TestSection
     extra_fields = {'suite_id' => suite_id}
     section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
     @items_to_remove_testsection.push(section)
 
+    # 3 - Create a Testcase
     extra_fields = {'section_id' => section_id}
     testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
-    @connection_testcase.update_external_id_fields(testcase, @unique_number , nil, nil)
     @items_to_remove_testcase.push(testcase)
     
+    # 4 - Create a TestPlan with a TestRun for the above TestCase
     extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
                                       'include_all' => false,
                                       'case_ids'    => [testcase_id],
-                                      'runs'        => [{ 'include_all' => false, # Override selection
-                                                          'case_ids'    => [testcase_id]
-                                                       }]
+                                      'runs'        => [{'include_all' => true}]
                                   }]
     }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
-
     run_id = testplan['entries'][0]['runs'][0]['id']
-    extra_fields = { 
-      'run_id'     => run_id, 
-      'case_id'    => testcase['id'] ,
-      'section_id' => section['id']
-    }
-    testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
-    @items_to_remove_testresult.push(testresult)
     
+    # 5 -
     @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
     @service_action.setup('', @rally_connection, @connection_testresult)
     @service_action.perform_post_service_action(:copy_to_rally,[])
-    
+
+    # 6 -
     created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
     expect(created_test_set).to_not be_nil
     expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID)
