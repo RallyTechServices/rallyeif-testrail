@@ -25,6 +25,13 @@ module RallyEIF
         def post_update_to_rally_action(item_list)
           process_results(item_list)
         end
+        
+        # Get custom field system name
+        def cfsys(fn)
+          # Given a custom field name like "RallyObjectID",
+          # Return the systen name of 'custom_rallyobjectid'
+          return 'custom_' + fn.to_s.downcase
+        end
 
         def find_rally_test_case_by_oid(oid)
           begin
@@ -102,8 +109,16 @@ module RallyEIF
             refs.push({'_ref'=> tc['_ref']})
           end
 
-          fields = { 'TestCases' => refs }
-          rally_test_set.update(fields)
+          begin
+            fields = { 'TestCases' => refs }
+  
+            rally_test_set.update(fields)
+          rescue Exception => ex
+            RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
+            RallyLogger.warning(self, "\tfields: '#{fields}'")
+            RallyLogger.warning(self, "\t   msg: '#{ex.message}'")
+            raise RecoverableException.new(ex, self)
+          end
         end # of 'def add_testcase_to_test_set(rally_test_case,rally_test_set)'
         
         def process_results(tr_testresults_list)
@@ -130,7 +145,10 @@ module RallyEIF
             rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
             if rally_test_set.nil?
               # 1.2 - If not, create one
-              run_name = "#{run['id']}: #{run['name']} #{run['config']}"
+              run_name = "#{run['id']}: #{run['name']}"
+              if !run['config'].nil?
+                run_name = run_name + "{run['config']}"
+              end
               rally_test_set = create_rally_test_set(run_name)
             end
             
@@ -166,8 +184,12 @@ module RallyEIF
               RallyLogger.debug(self, "Found '#{testcases_for_run.length}' testcases for run_id '#{run['id']}'")
               rally_testcase_oids = []
               testcases_for_run.each do |testcase|
-                rally_testcase = find_rally_test_case_by_oid(testcase['custom_rallyobjectid'])
-                add_testcase_to_test_set(rally_testcase,rally_test_set)
+                if !testcase[cfsys(TestConfig::TR_EXTERNAL_ID_FIELD)].nil?
+                  rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(TestConfig::TR_EXTERNAL_ID_FIELD)])
+                  add_testcase_to_test_set(rally_testcase,rally_test_set)
+                else
+                  RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
+                end
               end
             end
           end
@@ -177,7 +199,7 @@ module RallyEIF
             #RallyLogger.debug(self,"TestRail testresult: '#{testresult}'")
             RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
             RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
-            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase']['custom_rallyformattedid']}'")
+            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase'][cfsys(TestConfig::TR_EXTERNAL_EU_ID_FIELD)]}'")
             rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
             if rally_test_set.nil?
               RallyLogger.debug(self,"test: <no test set found in Rally>")
