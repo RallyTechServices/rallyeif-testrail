@@ -694,7 +694,7 @@ module RallyEIF
         return matching_artifacts
       end
 #---------------------#      
-      def find_test_for_run(run_id)
+      def find_tests_for_run(run_id)
         tests = []
         uri = "get_tests/#{run_id}"
         RallyLogger.info(self, "Doing send_get '#{uri}'")
@@ -703,7 +703,7 @@ module RallyEIF
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
           RallyLogger.warning(self, "\t#{ex.message}")
-          raise UnrecoverableException.new("\tFailed to find any Tests", self)
+          raise UnrecoverableException.new("\tFailed to find any Tests for runid '#{run_id}'", self)
         end
         return tests
       end

@@ -26,28 +26,32 @@ module RallyEIF
           process_results(item_list)
         end
 
-#        def find_rally_test_case_by_oid(oid)
-#          begin
-#            query = RallyAPI::RallyQuery.new()
-#            query.type       = 'testcase'
-#            query.workspace  = @rally_connection.workspace
-#            #query.fetch      = "true"
-#            query.fetch      = "FormattedID,Name,Iteration,Project,WorkProduct,ObjectID"
-#            query.limit      = 1
-#  
-#            base_string = "( ObjectID = #{oid} )"
-#  
-#            query.query_string = base_string
-#            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
-#            query_result = @rally_connection.rally.find(query)
-#  
-#            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
-#          rescue Exception => ex
-#            raise UnrecoverableException.copy(ex, self)
-#          end
-#          
-#          return query_result.first
-#        end # of 'def find_rally_test_case_by_oid(oid)'
+        def find_rally_test_case_by_oid(oid)
+          begin
+            query = RallyAPI::RallyQuery.new()
+            query.type       = 'testcase'
+            query.workspace  = @rally_connection.workspace
+            #query.fetch      = "true"
+            query.fetch      = "FormattedID,Name,Iteration,Project,WorkProduct,ObjectID"
+            query.limit      = 1
+  
+            base_string = "( ObjectID = #{oid} )"
+  
+            query.query_string = base_string
+            RallyLogger.debug(self, "Query Rally for '#{query.type}' using: #{query.query_string}")
+            query_result = @rally_connection.rally.find(query)
+  
+            str1 = ''
+            if query_result.length > 1
+              str1 = ' (using first found)'
+            end
+            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'#{str1}")
+          rescue Exception => ex
+            raise UnrecoverableException.copy(ex, self)
+          end
+          
+          return query_result.first
+        end # of 'def find_rally_test_case_by_oid(oid)'
         
         def find_rally_test_set_by_name(name)
           begin
@@ -64,7 +68,11 @@ module RallyEIF
             
             query_result = @rally_connection.rally.find(query)
             
-            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'; using first")
+            str1 = ''
+            if query_result.length > 1
+              str1 = ' (using first found)'
+            end
+            RallyLogger.debug(self, "\tquery for '#{query.type}' returned '#{query_result.length}'#{str1}")
           rescue Exception => ex
             raise UnrecoverableException.copy(ex, self)
           end
@@ -110,6 +118,10 @@ module RallyEIF
             # 3 - find the rally story(s) which contains the testplan id
             # 4 - get project & iteration from the rally story
             # 5 - add project & iteration to new testset
+            # 6 - get TR testcases in this run (find-test-for-run)
+            #       - for each testcase 
+            #           - find equiv rally testcase (find-rally-testcase-by-oid)
+            #           - add rally testcase to rally testset
             #-----
 
             # 1 - find or create a testset for this testrun
@@ -127,10 +139,10 @@ module RallyEIF
             else
               # 2 - get the testplan id for this testrun
               plan_id = run['plan_id']
-              
               # 3 - find the rally story(s) which contains the testplan id
               story = find_rally_story_with_plan_id(plan_id)
 
+              fields = {}
               if story.total_result_count < 1
                 RallyLogger.warning(self, "Found no stories with a plan_id of '#{plan_id}'")
               else
@@ -139,11 +151,23 @@ module RallyEIF
                 iteration = story.first.Iteration
                 
                 # 5 - add project & iteration to new testset
-                fields = {'Project' => {'_ref'=> project['_ref']}}
+                fields['Project'] = {'_ref'=> project['_ref']}
                 if !iteration.nil?
                   fields['Iteration'] =  {'_ref'=> iteration['_ref']}
                 end
                 rally_test_set.update(fields)
+              end
+              
+              # 6 - get TR testcases in this run (find-test-for-run)
+              #       - for each testcase 
+              #           - find equiv rally testcase (find-rally-testcase-by-oid)
+              #           - add rally testcase to rally testset
+              testcases_for_run = @other_connection.find_tests_for_run(run['id'])
+              RallyLogger.debug(self, "Found '#{testcases_for_run.length}' testcases for run_id '#{run['id']}'")
+              rally_testcase_oids = []
+              testcases_for_run.each do |testcase|
+                rally_testcase = find_rally_test_case_by_oid(testcase['custom_rallyobjectid'])
+                add_testcase_to_test_set(rally_testcase,rally_test_set)
               end
             end
           end
@@ -174,7 +198,10 @@ module RallyEIF
 
         def find_rally_story_with_plan_id(plan_id)
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
-          RallyLogger.info(self, "Find Rally Story with plan_id '#{plan_id}' in '#{plan_id_field_on_stories}'")
+          if plan_id_field_on_stories.nil?
+            RallyLogger.warning(self, "Config file contains no <RallyStoryFieldForPlanID> in the <TestRailConnection> section.")
+          end
+          RallyLogger.info(self, "Find Rally Story with '#{plan_id}' in '#{plan_id_field_on_stories}'")
           @rally = @rally_connection.rally
           
           begin
@@ -182,20 +209,10 @@ module RallyEIF
             query.type       = 'hierarchicalrequirement'
             query.workspace  = @rally_connection.workspace
             query.fetch      = "FormattedID,Name,Project,Iteration,#{plan_id_field_on_stories}"
-            query.limit      = 1 # We want only one
-            query.page_size  = 1 # Be sure we don't get more delivered in the background
-    
-            base_query = "(#{plan_id_field_on_stories} != \"\")"
-     
-            if @rally_connection.copy_selectors.length > 0
-# Hey JohnM: Should the line below be:
-#            @rally_connection.copy_selectors.each ...              
-              @rally_connection.each do |cs|
-                addition = "(#{cs.field} #{cs.relation} \"#{cs.value}\")"
-                base_query = query.add_and(base_query, addition)
-              end
-            end
-     
+
+            # try to find 123, or R123, or r123 ...
+            base_query = "( ( (#{plan_id_field_on_stories} = \"#{plan_id}\") OR (#{plan_id_field_on_stories} = \"R#{plan_id}\") ) OR (#{plan_id_field_on_stories} = \"r#{plan_id}\") )"
+                 
             query.query_string = base_query
             RallyLogger.debug(self, "Rally using query: '#{query.query_string}'")
             query_result = @rally.find(query)
@@ -205,11 +222,11 @@ module RallyEIF
 
           count = query_result.total_result_count
           if count < 1
-            #RallyLogger.warning(self, "  Found no Rally stories with the plan_id")
+            #RallyLogger.warning(self, "  Found no Rally stories with a value in plan_id field")
           elsif count == 1
             fmtid = query_result.first.FormattedID
             RallyLogger.info(self, "  Found Rally story '#{fmtid}'")
-          else # if it was more than one story found...
+          else # if there was more than one story found...
             fmtids = Array.new
             query_result.each do |us|
               fmtids.push(us.FormattedID)
@@ -227,4 +244,3 @@ module RallyEIF
     end # of 'module PostServiceActions'
   end # of 'module WRK'
 end # of 'module RallyEIF'
-
