@@ -13,6 +13,13 @@ describe "Given configuration in the TestRail section" do
     #puts "Our TestRail connection contains:"
     #pp trc
   end
+  
+  # Get custom field system name
+  def cfsys(fn)
+    # Given a custom field name like "RallyObjectID",
+    # Return the systen name of 'custom_rallyobjectid'
+    return 'custom_' + fn.to_s.downcase
+  end
 
   it "(1), should successfully load basic config settings " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
@@ -33,7 +40,7 @@ describe "Given configuration in the TestRail section" do
   it "(3), should successfully verify existence of fields " do
     connection = testrail_connect(TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
     expect( connection.field_exists?(TestConfig::TR_ID_FIELD) ).to be(true)
-    expect( connection.field_exists?('custom_' + TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
+    expect( connection.field_exists?(cfsys(TestConfig::TR_EXTERNAL_ID_FIELD)) ).to be(true)
     expect( connection.field_exists?(TestConfig::TR_EXTERNAL_ID_FIELD) ).to be(true)
     expect( connection.field_exists?(:title) ).to be(true)
   end
