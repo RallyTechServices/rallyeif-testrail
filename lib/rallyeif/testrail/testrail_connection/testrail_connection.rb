@@ -343,6 +343,13 @@ module RallyEIF
         return new_plan_entry
       end
 #---------------------#
+      # Get custom field system name
+      def cfsys(fn)
+        # Given a custom field name like "RallyObjectID",
+        # Return the systen name of 'custom_rallyobjectid'
+        return 'custom_' + fn.to_s.downcase
+      end
+#---------------------#
       def create_internal(int_work_item)
 #        if @all_sections.empty?
 #          section_id = 1
@@ -354,7 +361,6 @@ module RallyEIF
 #        else
 #          suite_id = @all_suites[0]['id'] # put in first suite
 #        end
-        
         
         begin
           case @artifact_type.to_s.downcase
@@ -515,7 +521,7 @@ module RallyEIF
         case @artifact_type.to_s
         when 'testcase'
           if (!@tr_cust_fields_tc.member? field_name.to_s.downcase) && (!@tr_fields_tc.member? field_name.to_s.downcase)
-            if (!@tr_cust_fields_tc.member? 'custom_' + field_name.to_s.downcase)
+            if (!@tr_cust_fields_tc.member? cfsys(field_name))
               RallyLogger.error(self, "TestRail field '#{field_name.to_s}' not a valid field name for Test Cases in project '#{@project}'")
               RallyLogger.debug(self, "  available fields (standard): #{@tr_fields_tc}")
               RallyLogger.debug(self, "  available fields (custom): #{@tr_cust_fields_tc}")
@@ -530,7 +536,7 @@ module RallyEIF
           
           special_fields = ['_testcase','_test']
           if (!@tr_cust_fields_tcr.member? field_name.to_s.downcase) && (!@tr_fields_tcr.member? field_name.to_s.downcase)
-            if (!@tr_cust_fields_tcr.member? 'custom_' + field_name.to_s.downcase )  && ( !special_fields.member? field_name.to_s.downcase )
+            if (!@tr_cust_fields_tcr.member? cfsys(field_name) )  && ( !special_fields.member? field_name.to_s.downcase )
               RallyLogger.error(self, "TestRail field '#{field_name.to_s}' not a valid field name for Test Results in project '#{@project}'")
               RallyLogger.debug(self, "  available fields (standard): #{@tr_fields_tcr}")
               RallyLogger.debug(self, "  available fields (custom): #{@tr_cust_fields_tcr}")
@@ -552,7 +558,7 @@ module RallyEIF
         matching_artifacts = []
         rejected_artifacts = []
         artifacts.each do |artifact|
-          if artifact["custom_#{@external_id_field.downcase}"].nil?
+          if artifact[cfsys(@external_id_field)].nil?
             matching_artifacts.push(artifact)
           else
             rejected_artifacts.push(artifact)
@@ -616,7 +622,7 @@ module RallyEIF
         matching_artifacts = []
         ids = []
         artifact_array.each do |artifact|
-          if artifact["custom_#{@external_id_field.downcase}"] == external_id
+          if artifact[cfsys(@external_id_field)] == external_id
             matching_artifacts.push(artifact)
             ids.push get_id_value(artifact)
           end
@@ -780,7 +786,7 @@ module RallyEIF
           test_case = find({ 'id' => test['case_id'] }, 'testcase')
           test_result['_testcase'] = test_case
           # we only care about results where the test_case is also connected to Rally
-          if !test_case["custom_#{@external_id_field.downcase}"].nil?
+          if !test_case[cfsys(@external_id_field)].nil?
             filtered_test_results.push(test_result)
           end
         end
@@ -842,7 +848,7 @@ module RallyEIF
             result_array = @testrail.send_get(uri)
             # throw away those without extid
             result_array.each do |item|
-              if item["custom_#{@external_id_field.downcase}"] != nil
+              if item[cfsys(@external_id_field)] != nil
                 matching_artifacts.push(item)
               end
             end
@@ -937,7 +943,7 @@ module RallyEIF
         
         new_fields = {}
         if !external_id.nil?
-          sys_name = 'custom_' + @external_id_field.to_s.downcase
+          sys_name = cfsys(@external_id_field)
           new_fields[sys_name] = external_id
           RallyLogger.debug(self, "Updating TestRail item <ExternalIDField>: '#{sys_name}' to '#{external_id}'")
         end
@@ -946,14 +952,14 @@ module RallyEIF
         if !item_link.nil?
           url_only = item_link.gsub(/.* href=["'](.*?)['"].*$/, '\1')
           if !@external_item_link_field.nil?
-            sys_name = 'custom_' + @external_item_link_field.to_s.downcase
+            sys_name = cfsys(@external_item_link_field)
             new_fields[sys_name] = url_only
             RallyLogger.debug(self, "Updating TestRail item <CrosslinkUrlField>: '#{sys_name}' to '#{url_only}'")
           end
         end
 
         if !@external_end_user_id_field.nil?
-          sys_name = 'custom_' + @external_end_user_id_field.to_s.downcase
+          sys_name = cfsys(@external_end_user_id_field)
           new_fields[sys_name] = end_user_id
           RallyLogger.debug(self, "Updating TestRail item <ExternalEndUserIDField>: '#{sys_name}' to '#{end_user_id}'")
         end
