@@ -19,11 +19,21 @@ module RallyEIF
         end
 
         def post_copy_to_rally_action(item_list)
-          process_results(item_list)
+          if ENV['run_process_results_newbyjp'] == 'true'
+            RallyLogger.info(self, "NOTE: Invoking 'process_results_newbyjp()'...")
+            process_results_newbyjp(item_list)
+          else
+            process_results(item_list)
+          end
         end
 
         def post_update_to_rally_action(item_list)
-          process_results(item_list)
+          if ENV['run_process_results_newbyjp'] == 'true'
+            RallyLogger.info(self, "NOTE: Invoking 'process_results_newbyjp()'...")
+            process_results_newbyjp(item_list)
+          else
+            process_results(item_list)
+          end
         end
         
         # Get custom field system name
@@ -147,7 +157,7 @@ module RallyEIF
               # 1.2 - If not, create one
               run_name = "#{run['id']}: #{run['name']}"
               if !run['config'].nil?
-                run_name = run_name + "{run['config']}"
+                run_name = run_name + "#{run['config']}"
               end
               rally_test_set = create_rally_test_set(run_name)
             end
@@ -217,6 +227,109 @@ module RallyEIF
           
           RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
         end # of 'def process_results(tr_testresults_list)'
+        
+        # The following is invoked when environment variable 'run_process_results_newbyjp' is set to string 'true'
+        def process_results_newbyjp(tr_testresults_list)
+        
+          RallyLogger.debug(self, "Running post process to associate test runs to test sets in Rally...")
+         
+          runs,run_ids = @other_connection.find_test_runs()
+          
+          runs.each do |run|
+            #-----
+            # For each run:
+            #   1) Get TestRail TestPlan ID for this TestRun
+            #   2) Find Rally story with that TestPlan ID value,
+            #        if not found, skip and go to next run
+            #   3) Find or create a Rally testset for this testrun
+            #        add Rally story ID to the beginning of the name of the testset
+            #   4) Get project & iteration from the rally story
+            #   5) Add project & iteration to new testset
+            #   6) Get TR testcases in this run (find-test-for-run)
+            #        - for each TR testcase 
+            #          - find equiv rally testcase (find-rally-testcase-by-oid)
+            #          - add rally testcase to rally testset (from 3 above)
+    
+            #   1) Get TestRail TestPlan ID for this TestRun
+            plan_id = run['plan_id']
+            
+            #   2) Find Rally story with that TestPlan ID value; if not found, skip and go to next run
+            story = find_rally_story_with_plan_id(plan_id)
+            if story.total_result_count < 1
+              RallyLogger.warning(self, "Found no stories with a plan_id of '#{plan_id}'")
+              next
+            end
+            
+            #   3) Find or create a Rally testset for this testrun
+            #        add Rally story ID to the beginning of the name of the testset
+            rally_test_set = nil
+            # Does a testset for this test run already exist in Rally?
+            rally_test_set = find_rally_test_set_by_name("#{run['id']}:")
+            if rally_test_set.nil?
+              # If not, create one
+              run_name = "#{story.first.FormattedID}: #{run['id']}: #{run['name']}"
+              if !run['config'].nil?
+                run_name = run_name + "#{run['config']}"
+              end
+              rally_test_set = create_rally_test_set(run_name)
+            end
+            if rally_test_set.nil?
+              RallyLogger.error(self, "Failed to find or create a testset in Rally; name='#{run_name}'")
+              next # run, please
+            end
+
+            #   4) Get project & iteration from the rally story                       
+            fields = {}
+            project = story.first.Project
+            iteration = story.first.Iteration
+            
+            #   5) Add project & iteration to new testset
+            fields['Project'] = {'_ref'=> project['_ref']}
+            if !iteration.nil?
+              fields['Iteration'] =  {'_ref'=> iteration['_ref']}
+            end
+            rally_test_set.update(fields)
+ 
+            
+            #   6) Get TR testcases in this run (find-test-for-run)
+            #        - for each TR testcase 
+            #          - find equiv rally testcase (find-rally-testcase-by-oid)
+            #          - add rally testcase to rally testset (from 3 above)
+            testcases_for_run = @other_connection.find_tests_for_run(run['id'])
+            RallyLogger.debug(self, "Found '#{testcases_for_run.length}' testcases for run_id '#{run['id']}'")
+            rally_testcase_oids = []
+            testcases_for_run.each do |testcase|
+              if !testcase[cfsys(@other_connection.external_id_field)].nil?
+                rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(@other_connection.external_id_field)])
+                add_testcase_to_test_set(rally_testcase,rally_test_set)
+              else
+                RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
+              end
+            end
+          end # of 'runs.each do |run|'
+          
+          RallyLogger.info(self,"Associate TestResult with the TestSet")
+          tr_testresults_list.each do |testresult|
+            RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
+            RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
+            RallyLogger.debug(self,"\t_testcase: id='#{testresult['_testcase']['id']}'  formattedid='#{testresult['_testcase'][cfsys(@other_connection.external_end_user_id_field)]}'")
+            rally_test_set = find_rally_test_set_by_name("#{testresult['_test']['run_id']}:")
+            if rally_test_set.nil?
+              RallyLogger.debug(self,"test: <no test set found in Rally>")
+            else
+              RallyLogger.debug(self,"test: '#{testresult['_test']['run_id']}'")
+            end
+            rally_result = @rally_connection.find_result_with_build(testresult['id'])
+            if !rally_result.nil? && !rally_test_set.nil?
+              fields = { 'TestSet' => {'_ref'=>rally_test_set['_ref']} }
+              rally_result.update(fields)
+            else
+              RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
+            end
+          end
+          
+          RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
+        end # of 'def process_results_newbyjp(tr_testresults_list)'
 
         def find_rally_story_with_plan_id(plan_id)
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
