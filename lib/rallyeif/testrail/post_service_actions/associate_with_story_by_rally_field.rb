@@ -22,7 +22,7 @@ module RallyEIF
           #  msg = "AssociateWithStoryByRallyField requires that the TestRailConnection section have an entry for <RallyStoryFieldForPlanID>"
           #  raise UnrecoverableException.new(msg, self)
           #end
-        end
+        end # of 'def setup(action_config, rally_conn, other_conn)'
 
         def post_copy_to_rally_action(testcase_list)
           process_parents(testcase_list)
@@ -72,7 +72,7 @@ module RallyEIF
   
           RallyLogger.info(self, "  Found '#{query_result.total_result_count}' Stories in Rally")
           return query_result
-        end
+        end # of 'def find_rally_stories_with_plan_ids()'
         
         def process_parents(tr_testcase_list)
           #TODO -- change this to Test Sets to Projects and Iterations!
@@ -120,10 +120,10 @@ module RallyEIF
             end
           end
           RallyLogger.debug(self, "Completed running post process to associate test cases to stories in Rally.")
-        end
+        end # of 'def process_parents(tr_testcase_list)'
 
-      end
+      end # of 'class AssociateWithStoryByRallyField < PostServiceAction'
 
-    end
-  end
-end
+    end # of 'module PostServiceActions'
+  end # of 'module WRK'
+end # of 'module RallyEIF'
