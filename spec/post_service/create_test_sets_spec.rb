@@ -213,41 +213,43 @@ describe "When creating test sets for test case results" do
     
   end
   
-  it "(3), should put the test set into the default project if there is not a story linked to the test run's test plan" do
-    # 1 - Create a TestSuite
-    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
-    @items_to_remove_testsuite.push(suite)
-
-    # 2 - Create a TestSection
-    extra_fields = {'suite_id' => suite_id}
-    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
-    @items_to_remove_testsection.push(section)
-
-    # 3 - Create a Testcase
-    extra_fields = {'section_id' => section_id}
-    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
-    @items_to_remove_testcase.push(testcase)
-    
-    # 4 - Create a TestPlan with a TestRun for the above TestCase
-    extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
-                                      'include_all' => false,
-                                      'case_ids'    => [testcase_id],
-                                      'runs'        => [{'include_all' => true}]
-                                  }]
-    }
-    testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
-    @items_to_remove_testplan.push(testplan)
-    run_id = testplan['entries'][0]['runs'][0]['id']
-    
-    # 5 -
-    @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
-    @service_action.setup('', @rally_connection, @connection_testresult)
-    @service_action.perform_post_service_action(:copy_to_rally,[])
-
-    # 6 -
-    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
-    expect(created_test_set).to_not be_nil
-    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID)
-    
-  end
+# Removed for now (20-Aug-2015) becuase customer decided they did
+# not want to copy test sets if the test run’s test plan id isn’t in a story
+#  it "(3), should put the test set into the default project if there is not a story linked to the test run's test plan" do
+#    # 1 - Create a TestSuite
+#    suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
+#    @items_to_remove_testsuite.push(suite)
+#
+#    # 2 - Create a TestSection
+#    extra_fields = {'suite_id' => suite_id}
+#    section,section_id = create_testrail_artifact(@connection_testsection, extra_fields)
+#    @items_to_remove_testsection.push(section)
+#
+#    # 3 - Create a Testcase
+#    extra_fields = {'section_id' => section_id}
+#    testcase,testcase_id = create_testrail_artifact(@connection_testcase, extra_fields)
+#    @items_to_remove_testcase.push(testcase)
+#    
+#    # 4 - Create a TestPlan with a TestRun for the above TestCase
+#    extra_fields =  {'entries' => [{  'suite_id'    => suite_id,
+#                                      'include_all' => false,
+#                                      'case_ids'    => [testcase_id],
+#                                      'runs'        => [{'include_all' => true}]
+#                                  }]
+#    }
+#    testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
+#    @items_to_remove_testplan.push(testplan)
+#    run_id = testplan['entries'][0]['runs'][0]['id']
+#    
+#    # 5 -
+#    @service_action = RallyEIF::WRK::PostServiceActions::CreateTestSets.new()
+#    @service_action.setup('', @rally_connection, @connection_testresult)
+#    @service_action.perform_post_service_action(:copy_to_rally,[])
+#
+#    # 6 -
+#    created_test_set = @service_action.find_rally_test_set_by_name("#{run_id}:") 
+#    expect(created_test_set).to_not be_nil
+#    expect(created_test_set.Project.ObjectID).to eq(TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT_OID)
+#    
+#  end
 end
