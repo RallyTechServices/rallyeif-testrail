@@ -568,6 +568,9 @@ module RallyEIF
       end
 #---------------------#
       def find(item, type=@artifact_type)
+        if !(/\A\d+\z/ === item['id'].to_s)
+          raise RecoverableException.new("\tError in find(item,#{type});  non-integer item['id']='#{item['id']}')", self)
+        end
         begin
           case type.to_s.downcase
           when 'testcase'
@@ -590,7 +593,7 @@ module RallyEIF
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':\n")
           RallyLogger.warning(self, "\t#{ex.message}")
-          raise RecoverableException.copy("\tFailed to find the '#{type}' artifact", self)
+          raise RecoverableException.new("\tFailed to find the '#{type}' artifact", self)
         end
         
         return found_item
@@ -783,6 +786,25 @@ module RallyEIF
         test_results.each do |test_result|
           test = find({ 'id' => test_result['test_id'] }, 'test')
           test_result['_test'] = test
+##----------------------------------------------------------------
+## Special code: condition found @ VCE
+## use ENV var JPKoleSays=ShowMeDaVars to simulate condition
+          if test.nil?  ||  test['case_id'].to_s.empty?  ||  ENV['JPKoleSays']=='ShowMeDaVars'
+            skip_this_one = false
+            RallyLogger.warning(self,"TestRail-DataBase-Integrity issue?  (test['id']='#{test['id']}')")
+            if test['case_id'].to_s.empty?
+              RallyLogger.warning(self,"\tfound Test with no case_id; skipping")
+              skip_this_one = true
+            end
+            if test.nil?
+              RallyLogger.warning(self,"\tfound TestResult with no Test; skipping")
+              skip_this_one = true
+            end
+            RallyLogger.warning(self,"test.inspect=#{test.inspect}")
+            RallyLogger.warning(self,"test_result.inspect=#{test_result.inspect}")
+            next if skip_this_one == true #  (skip this test_result)
+          end
+##----------------------------------------------------------------
           test_case = find({ 'id' => test['case_id'] }, 'testcase')
           test_result['_testcase'] = test_case
           # we only care about results where the test_case is also connected to Rally
