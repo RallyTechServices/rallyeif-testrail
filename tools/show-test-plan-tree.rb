@@ -39,7 +39,7 @@ print "\tPassword : #{$my_testrail_password.gsub(/./,'*')}\n"
 # ------------------------------------------------------------------
 # Find my desired project
 #
-my_proj_name = 'JP-VCE-3'
+my_proj_name = 'JP-VCE-sm3'
 print "\n----------------------------------------------\n"
 print "02) Searching for project: '#{my_proj_name}'\n"
 my_proj_info = nil
