@@ -126,8 +126,10 @@ module RallyEIF
           RallyLogger.debug(self, "Running post process to associate test runs to test sets in Rally...")
          
           runs,run_ids = @other_connection.find_test_runs()
+          RallyLogger.debug(self, "Found '#{run_ids.length}' run(s); ID's: '#{run_ids}'")
           
-          runs.each do |run|
+          runs.each_with_index do |run,run_ndx|
+            RallyLogger.debug(self, "Processing 'run #{run_ndx+1}-of-#{run.length}'; plan_id='#{run['plan_id']}'")
             #-----
             # For each run:
             #   1) Get TestRail TestPlan ID for this TestRun
@@ -164,6 +166,9 @@ module RallyEIF
                 run_name = run_name + "#{run['config']}"
               end
               rally_test_set = create_rally_test_set(run_name)
+              RallyLogger.debug(self, "TestSet created: '#{rally_test_set.FormattedID}'")
+            else
+              RallyLogger.debug(self, "TestSet found: '#{rally_test_set.FormattedID}'")
             end
             if rally_test_set.nil?
               RallyLogger.error(self, "Failed to find or create a testset in Rally; name='#{run_name}'")
@@ -199,8 +204,8 @@ module RallyEIF
               end
             end
           end # of 'runs.each do |run|'
-          
-          RallyLogger.info(self,"Associate TestResult with the TestSet")
+
+          RallyLogger.info(self,"Associate '#{tr_testresults_list.length}' TestResult(s) with the TestSet")
           tr_testresults_list.each do |testresult|
             RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
             RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
@@ -214,14 +219,18 @@ module RallyEIF
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
             if !rally_result.nil? && !rally_test_set.nil?
               fields = { 'TestSet' => {'_ref'=>rally_test_set['_ref']} }
-              rally_result.update(fields)
+              begin
+                rally_result.update(fields)
+              rescue Exception => ex
+                raise RecoverableException.new(self, "Could not add #{rally_test_set.FormattedID} to #{rally_result._ref}\nMessage: #{ex.message}")
+              end
             else
               RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
             end
-          end
+          end # of 'tr_testresults_list.each do |testresult|'
           
           RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
-        end # of 'def process_results_newbyjp(tr_testresults_list)'
+        end # of 'def process_results(tr_testresults_list)'
 
         def find_rally_story_with_plan_id(plan_id)
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id
