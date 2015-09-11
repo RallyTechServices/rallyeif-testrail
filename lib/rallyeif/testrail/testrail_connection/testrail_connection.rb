@@ -787,7 +787,7 @@ module RallyEIF
           test = find({ 'id' => test_result['test_id'] }, 'test')
           test_result['_test'] = test
 ##----------------------------------------------------------------
-## Special code: condition found @ VCE
+## Special code: condition found @ VCE - a testresult has no case associated with it
 ## use ENV var JPKoleSays=ShowMeDaVars to simulate condition
           if test.nil?  ||  test['case_id'].to_s.empty?  ||  ENV['JPKoleSays']=='ShowMeDaVars'
             skip_this_one = false
