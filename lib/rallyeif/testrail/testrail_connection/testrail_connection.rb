@@ -783,9 +783,12 @@ module RallyEIF
         RallyLogger.debug(self,"Filtering out test case results that have an unconnected test case")
         
         filtered_test_results = []
-        test_results.each do |test_result|
+        test_results.each_with_index do |test_result,ndx_test_result|
+          if (ndx_test_result+1) % 30 == 0 # show status every now and then...
+            RallyLogger.debug(self,"Searched '#{ndx_test_result+1}' so far; continuing search...")
+          end
           test = find({ 'id' => test_result['test_id'] }, 'test')
-          test_result['_test'] = test
+          test_result['_test'] = test  ###  should this be inside the 'if' below?
 ##----------------------------------------------------------------
 ## Special code: condition found @ VCE - a testresult has no case associated with it
 ## use ENV var JPKoleSays=ShowMeDaVars to simulate condition
@@ -811,7 +814,7 @@ module RallyEIF
           if !test_case[cfsys(@external_id_field)].nil?
             filtered_test_results.push(test_result)
           end
-        end
+        end # of 'test_results.each_with_index do |test_result,ndx_test_result|'
         
         return filtered_test_results
       end
