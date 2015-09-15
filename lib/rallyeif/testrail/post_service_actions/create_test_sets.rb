@@ -129,7 +129,7 @@ module RallyEIF
           RallyLogger.debug(self, "Found '#{run_ids.length}' run(s); ID's: '#{run_ids}'")
           
           runs.each_with_index do |run,run_ndx|
-            RallyLogger.debug(self, "Processing 'run #{run_ndx+1}-of-#{run.length}'; plan_id='#{run['plan_id']}'")
+            RallyLogger.debug(self, "Processing 'run #{run_ndx+1}-of-#{runs.length}'; plan_id='#{run['plan_id']}'")
             #-----
             # For each run:
             #   1) Get TestRail TestPlan ID for this TestRun
@@ -198,7 +198,9 @@ module RallyEIF
             testcases_for_run.each do |testcase|
               if !testcase[cfsys(@other_connection.external_id_field)].nil?
                 rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(@other_connection.external_id_field)])
-                add_testcase_to_test_set(rally_testcase,rally_test_set)
+                if !rally_testcase.nil?
+                  add_testcase_to_test_set(rally_testcase,rally_test_set)
+                end
               else
                 RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
               end
@@ -222,10 +224,10 @@ module RallyEIF
               begin
                 rally_result.update(fields)
               rescue Exception => ex
-                raise RecoverableException.new(self, "Could not add #{rally_test_set.FormattedID} to #{rally_result._ref}\nMessage: #{ex.message}")
+                raise RecoverableException.new("Could not add #{rally_test_set.FormattedID} to #{rally_result._ref}\nMessage: #{ex.message}", self)
               end
             else
-              RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
+              RallyLogger.info(self, "No result found in Rally with Build: '#{testresult['id']}'")
             end
           end # of 'tr_testresults_list.each do |testresult|'
           
