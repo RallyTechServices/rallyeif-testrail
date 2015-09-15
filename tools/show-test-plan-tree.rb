@@ -9,7 +9,7 @@ $my_testrail_password   = 'MySecretPassword'
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
-my_vars = "./show-test-case.vars.rb"
+my_vars = "./show-test-plan-tree.vars.rb"
 if FileTest.exist?( my_vars )
     print "Sourcing #{my_vars}...\n"
     require my_vars
@@ -40,6 +40,7 @@ print "\tPassword : #{$my_testrail_password.gsub(/./,'*')}\n"
 # Find my desired project
 #
 my_proj_name = 'JP-VCE-sm3'
+my_proj_name = 'zzJPKole-TestProject'
 print "\n----------------------------------------------\n"
 print "02) Searching for project: '#{my_proj_name}'\n"
 my_proj_info = nil
@@ -59,12 +60,16 @@ if my_proj_info == nil
     exit
 end
 p = my_proj_info
-str = p['announcement'].gsub(/\n/,"\n\t\t\t")
 print "\t           id = #{p['id']}\n"
 print "\t         name = #{p['name']}\n"
 print "\t   suite_mode = #{p['suite_mode']}\n"
 print "\t is_completed = #{p['is_completed']}\n"
-print "\t          url = {p['url']}\n"
+print "\t          url = #{p['url']}\n"
+if p['announcement'].nil?
+    str = 'nil'
+else
+    str = p['announcement'].gsub(/\n/,"\n\t\t\t")
+end
 print "\t announcement = #{str}\n"
 
 
