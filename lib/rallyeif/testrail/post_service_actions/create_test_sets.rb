@@ -96,7 +96,8 @@ module RallyEIF
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
-          RallyLogger.info(self, "In Rally, adding TestCase '#{rally_test_case}' to TestSet '#{rally_test_set['ObjectID']}'")
+          RallyLogger.info(self, "Rally TestSet '#{rally_test_set.FormattedID}/#{rally_test_set.ObjectID}' currently has '#{test_set.TestCaseCount}' TestCases")
+          RallyLogger.info(self, "\tadding Rally TestCase '#{rally_test_case.FormattedID}/#{rally_test_case._refObjectName}' to above Rally TestSet")
           
           test_set = @rally_connection.rally.read('testset', rally_test_set['ObjectID'])
           
@@ -111,13 +112,14 @@ module RallyEIF
 
           begin
             fields = { 'TestCases' => refs }
-  
             rally_test_set.update(fields)
           rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
-            RallyLogger.warning(self, "\tfields: '#{fields}'")
+            #RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
+            RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_set}'")
+            RallyLogger.warning(self, "\tattempting to add '#{refs.length}' testcases to testset")
+            #RallyLogger.warning(self, "\tfields: '#{fields}'")
             RallyLogger.warning(self, "\t   msg: '#{ex.message}'")
-            raise RecoverableException.new(ex, self)
+            raise RecoverableException.copy(ex, self)
           end
         end # of 'def add_testcase_to_test_set(rally_test_case,rally_test_set)'
         
