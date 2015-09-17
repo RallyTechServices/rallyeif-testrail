@@ -33,6 +33,8 @@
         <SuiteIDs>S26</SuiteIDs>
         -->
         <ArtifactType>TestCase</ArtifactType>
+
+        <RunDaysToSearch>10</RunDaysToSearch>
     </TestRailConnection>
 
     <Connector>

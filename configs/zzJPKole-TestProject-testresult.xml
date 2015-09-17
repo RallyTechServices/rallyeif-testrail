@@ -20,6 +20,8 @@
 
         <ArtifactType>TestResult</ArtifactType>
 
+        <RunDaysToSearch>10</RunDaysToSearch>
+
    <!-- The following is the name of the Rally custom field (for User Stories,
         of type String) which will be used by the connector to store the
         TestRail PlanID number of the TestRail Plan which is to be associated
