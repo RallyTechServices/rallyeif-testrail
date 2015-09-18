@@ -18,7 +18,7 @@ module RallyEIF
       attr_reader   :testrail,  :tr_project
       attr_reader   :all_suites,  :all_sections
       attr_reader   :rally_story_field_for_plan_id
-      attr_reader   :run_days_to_search
+      attr_reader   :run_days_to_search, :run_days_as_unixtime
       attr_accessor :project,  :section_id
       
       #
@@ -51,9 +51,22 @@ module RallyEIF
         @section_id         = nil
         @cfg_suite_ids      = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "SuiteIDs", false)
 
+        # Determine how far back in time to look for updates on TR TestCases
         @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false)
         if @run_days_to_search.nil?
           @run_days_to_search = 14 # Default for how far back to search for NEW TestCases and TestResults
+        end
+        seconds_in_a_day = 60*60*24
+        @run_days_as_unixtime = Time.now.to_i - seconds_in_a_day*@run_days_to_search.to_i
+        
+        # TR_SysCell - allow user some hidden overrides via environment variables.
+        # Please document here. Presents of following strings engage the option.
+        #   CasesCreated  - Use created_after on search for cases instead of updated_after in find_new_testcases()
+        #   ShowTRvars    - Show TestResult vars in find_test_results() on special condition 
+        @tr_sc = Array.new
+        values = ENV['TR_SysCell']
+        if !values.nil?
+          @tr_sc = values.split(',')
         end
       end
       
@@ -82,6 +95,7 @@ module RallyEIF
         RallyLogger.debug(self, "  Connector Name    : #{name}")
         RallyLogger.debug(self, "  Connector Version : #{version}")
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
+        RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search}")
         RallyLogger.debug(self, "********************************************************")
         
         #
@@ -664,24 +678,21 @@ module RallyEIF
       end
 #---------------------#
       def find_new()
-        RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects")
+        RallyLogger.info(self, "Find new TestRail '#{@artifact_type.to_s.downcase}' objects, created after: '#{Time.at(@run_days_as_unixtime)}'")
 
         case @artifact_type.to_s.downcase
 
         when 'testcase'
           matching_artifacts = find_new_testcases()
 
-        when 'testrun'
-          raise UnrecoverableException.new('Unimplemented logic: find_new on "testrun"...', self)
-        
         when 'testresult'
           matching_artifacts = find_test_results()
           
         else
-          raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type}' (msg3)", self)
+          raise UnrecoverableException.new("Unrecognized value for <ArtifactType> '#{@artifact_type.to_s.downcase}' (msg3)", self)
         end
 
-        RallyLogger.info(self, "Found '#{matching_artifacts.length}' new TestRail '#{@artifact_type}' objects")
+        RallyLogger.info(self, "Found '#{matching_artifacts.length}' new TestRail '#{@artifact_type.to_s.downcase}' objects")
         
         return matching_artifacts
       end
@@ -705,10 +716,20 @@ module RallyEIF
           raise UnrecoverableException.new("Invalid value for suite_mode (#{@tr_project_sm})", self)
         end
         
-        RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects in suite(s) '#{@all_suite_ids}'")
+        #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects in suite(s) '#{@all_suite_ids}'")
+        RallyLogger.info(self, "Find new TestRail 'testcase' objects, in suite(s) '#{@all_suite_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
+
         @all_suites.each do |next_suite|
           begin
-            uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
+            #uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}&created_after=#{@run_days_as_unixtime}"
+            uri = 'get_cases'
+            uri = uri + "/#{@tr_project['id']}"
+            uri = uri + "&suite_id=#{next_suite['id']}"
+            if @tr_sc.include?('CasesCreated') # Allow user to override default with ENV var
+              uri = uri + "&created_after=#{@run_days_as_unixtime}"
+            else
+              uri = uri + "&updated_after=#{@run_days_as_unixtime}" # default search
+            end
             returned_artifacts = @testrail.send_get(uri)
             RallyLogger.debug(self, "Found '#{returned_artifacts.length}' testcases in suite id '#{next_suite['id']}'")
             kept,rejected = filter_out_already_connected(returned_artifacts)
@@ -740,7 +761,12 @@ module RallyEIF
       # find and populated related data for plans
       def find_test_plans()
         begin
-          uri1 = "get_plans/#{@tr_project['id']}"
+          uri1 = 'get_plans'
+          uri1 = uri1 + "/#{@tr_project['id']}"
+          
+          # Should we enable this?
+          uri1 = uri1 + "&created_after=#{@run_days_as_unixtime}"
+
           plan_shells = @testrail.send_get(uri1)
           plans = []
           plan_shells.each do |plan_shell|
@@ -780,13 +806,16 @@ module RallyEIF
       def find_test_results()
         # have to iterate over the runs
         runs, run_ids = find_test_runs()
-        RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
+        #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
+        RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
         
         test_results = []
         runs.each do |run|
           begin
             run_id = run['id']
-            uri = "get_results_for_run/#{run_id}"
+            uri = 'get_results_for_run'
+            uri = uri + "/#{run_id}"
+            uri = uri + "/&created_after=#{@run_days_as_unixtime}"
             results = @testrail.send_get(uri)
             filtered_results,rejected_results = filter_out_already_connected(results)
             test_results = test_results.concat(filtered_results)
@@ -811,8 +840,8 @@ module RallyEIF
           test_result['_test'] = test  ###  should this be inside the 'if' below?
 ##----------------------------------------------------------------
 ## Special code: condition found @ VCE - a testresult has no case associated with it
-## use ENV var JPKoleSays=ShowMeDaVars to simulate condition
-          if test.nil?  ||  test['case_id'].to_s.empty?  ||  ENV['JPKoleSays']=='ShowMeDaVars'
+## use ENV var TR_SysCell=ShowTRvars to simulate condition
+          if test.nil?  ||  test['case_id'].to_s.empty?  ||  @tr_sc.include?('ShowTRvars')
             skip_this_one = false
             RallyLogger.warning(self,"TestRail-DataBase-Integrity issue?  (test['id']='#{test['id']}')")
             if test['case_id'].to_s.empty?
