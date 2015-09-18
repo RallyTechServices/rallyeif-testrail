@@ -96,6 +96,9 @@ module RallyEIF
         RallyLogger.debug(self, "  Connector Version : #{version}")
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
         RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search}")
+        if !@tr_sc.empty?
+          RallyLogger.debug(self, "  TR_SysCell values : #{@tr_sc}")
+        end
         RallyLogger.debug(self, "********************************************************")
         
         #
