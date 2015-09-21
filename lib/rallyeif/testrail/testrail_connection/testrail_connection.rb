@@ -720,19 +720,23 @@ module RallyEIF
         end
         
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects in suite(s) '#{@all_suite_ids}'")
-        RallyLogger.info(self, "Find new TestRail 'testcase' objects, in suite(s) '#{@all_suite_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
+        
+        if @tr_sc.include?('CasesCreated') # Allow user to override default with ENV var
+          uri_date = "&created_after=#{@run_days_as_unixtime}"
+          str1 = 'created'
+        else
+          uri_date = "&updated_after=#{@run_days_as_unixtime}" # default search
+          str1 = 'updated'
+        end
+        RallyLogger.info(self, "Find new TestRail 'testcase' objects, in suite(s) '#{@all_suite_ids}', #{str1} after: '#{Time.at(@run_days_as_unixtime)}'")
 
         @all_suites.each do |next_suite|
           begin
             #uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}&created_after=#{@run_days_as_unixtime}"
-            uri = 'get_cases'
-            uri = uri + "/#{@tr_project['id']}"
-            uri = uri + "&suite_id=#{next_suite['id']}"
-            if @tr_sc.include?('CasesCreated') # Allow user to override default with ENV var
-              uri = uri + "&created_after=#{@run_days_as_unixtime}"
-            else
-              uri = uri + "&updated_after=#{@run_days_as_unixtime}" # default search
-            end
+            uri_call  = 'get_cases'
+            uri_proj  = "/#{@tr_project['id']}"
+            uri_suite = "&suite_id=#{next_suite['id']}"
+            uri = uri_call + uri_proj + uri_suite + uri_date
             returned_artifacts = @testrail.send_get(uri)
             RallyLogger.debug(self, "Found '#{returned_artifacts.length}' testcases in suite id '#{next_suite['id']}'")
             kept,rejected = filter_out_already_connected(returned_artifacts)
@@ -764,12 +768,13 @@ module RallyEIF
       # find and populated related data for plans
       def find_test_plans()
         begin
-          uri1 = 'get_plans'
-          uri1 = uri1 + "/#{@tr_project['id']}"
-          
-          # Should we enable this?
-          uri1 = uri1 + "&created_after=#{@run_days_as_unixtime}"
+          uri1_call = 'get_plans'
+          uri1_proj = "/#{@tr_project['id']}"
 
+          # Should we enable this?
+          uri1_date = ''  #  "&created_after=#{@run_days_as_unixtime}"
+
+          uri1 = uri1_call + uri1_proj + uri1_date
           plan_shells = @testrail.send_get(uri1)
           plans = []
           plan_shells.each do |plan_shell|
@@ -811,14 +816,14 @@ module RallyEIF
         runs, run_ids = find_test_runs()
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
         RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
+        uri_date = "&created_after=#{@run_days_as_unixtime}"
         
         test_results = []
+        uri_call = 'get_results_for_run'
         runs.each do |run|
           begin
-            run_id = run['id']
-            uri = 'get_results_for_run'
-            uri = uri + "/#{run_id}"
-            uri = uri + "/&created_after=#{@run_days_as_unixtime}"
+            uri_runid = "/#{run['id']}"
+            uri = uri_call + uri_runid + uri_date
             results = @testrail.send_get(uri)
             filtered_results,rejected_results = filter_out_already_connected(results)
             test_results = test_results.concat(filtered_results)
@@ -926,7 +931,11 @@ module RallyEIF
         
         @all_suites.each do |next_suite|
           begin
-            uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}&updated_after=#{unix_time}"
+            uri_call  = 'get_cases/'
+            uri_proj  = "/#{@tr_project['id']}"
+            uri_suite = "&suite_id=#{next_suite['id']}"
+            uri_date  = "&updated_after=#{unix_time}"
+            uri = uri_call + uri_proj + uri_suite + uri_date
             result_array = @testrail.send_get(uri)
             # throw away those without extid
             result_array.each do |item|
