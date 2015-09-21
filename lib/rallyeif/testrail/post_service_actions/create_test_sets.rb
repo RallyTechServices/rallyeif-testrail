@@ -96,10 +96,10 @@ module RallyEIF
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
-          RallyLogger.info(self, "Rally TestSet '#{rally_test_set.FormattedID}/#{rally_test_set.ObjectID}' currently has '#{test_set.TestCaseCount}' TestCases")
-          RallyLogger.info(self, "\tadding Rally TestCase '#{rally_test_case.FormattedID}/#{rally_test_case._refObjectName}' to above Rally TestSet")
-          
           test_set = @rally_connection.rally.read('testset', rally_test_set['ObjectID'])
+
+          RallyLogger.info(self, "Rally TestSet '#{test_set.FormattedID}/#{test_set.ObjectID}' currently has '#{test_set.TestCases.length}' TestCases")
+          RallyLogger.info(self, "\tadding Rally TestCase '#{rally_test_case.FormattedID}/#{rally_test_case._refObjectName}' to above Rally TestSet")
           
           associated_test_cases = test_set['TestCases'] || []
           associated_test_cases = associated_test_cases.push(rally_test_case)
