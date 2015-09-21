@@ -9,7 +9,7 @@ $my_testrail_password   = 'FooBar'
 
 def get_my_vars()
     print "\n----------------------------------------------\n"
-    my_vars = './create-1-testcase.vars.rb'
+    my_vars = './MyVars.rb'
     if FileTest.exist?( my_vars )
         print "01) Sourcing #{my_vars}...\n"
         require my_vars
