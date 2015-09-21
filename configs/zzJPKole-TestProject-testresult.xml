@@ -20,7 +20,7 @@
 
         <ArtifactType>TestResult</ArtifactType>
 
-        <RunDaysToSearch>10</RunDaysToSearch>
+        <RunDaysToSearch>3</RunDaysToSearch>
 
    <!-- The following is the name of the Rally custom field (for User Stories,
         of type String) which will be used by the connector to store the
