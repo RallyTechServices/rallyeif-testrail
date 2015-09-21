@@ -10,7 +10,7 @@ $my_testrail_password   = 'MySecretPassword'
 # Load (and maybe override with) my personal/private variables from a file.
 #
 print "\n----------------------------------------------\n"
-my_vars = "./add-result-to-all-tests.vars.rb"
+my_vars = "./MyVars.rb"
 if FileTest.exist?( my_vars )
     print "01) Sourcing #{my_vars}...\n"
     require my_vars

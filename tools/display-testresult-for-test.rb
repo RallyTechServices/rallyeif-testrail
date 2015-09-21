@@ -21,7 +21,7 @@ $my_testrail_password   = 'MySecretPassword'
 
 def get_my_vars()
     print "\n01) -------------------------------------------\n"
-    my_vars = './display-testresult-for-test.vars.rb'
+    my_vars = './MyVars.rb'
     if FileTest.exist?( my_vars )
         print "\tSourcing #{my_vars}...\n"
         require my_vars
