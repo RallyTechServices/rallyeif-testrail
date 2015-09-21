@@ -10,19 +10,19 @@ $my_testrail_password   = 'MySecretPassword'
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
-my_vars = "./show-test-results.vars.rb"
+my_vars = "./MyVars.rb"
 if FileTest.exist?( my_vars )
-    print "Sourcing #{my_vars}...\n"
+    print "01) Sourcing #{my_vars}...\n"
     require my_vars
 else
-    print "File #{my_vars} not found; skipping require...\n"
+    print "01) File #{my_vars} not found; skipping require...\n"
 end
 
 
 # ------------------------------------------------------------------
 # Set up a TestRail connection packet and connect.
 #
-print "\n01) Connecting to TestRail system at:\n"
+print "\n02) Connecting to TestRail system at:\n"
 print "\tURL  : #{$my_testrail_url}\n"
 print "\tUser : #{$my_testrail_user}\n"
 
@@ -30,7 +30,7 @@ print "\tUser : #{$my_testrail_user}\n"
 @tr_con.user     = $my_testrail_user
 @tr_con.password = $my_testrail_password
 
-print "\n02) Connected to the TestRail system:\n"
+print "\n03) Connected to the TestRail system:\n"
 print "\tuser:#{@tr_con.user}\n"
 
 
@@ -117,7 +117,7 @@ end
 #
 uri = 'get_projects'
 @all_projects = @tr_con.send_get(uri)
-print "\n03) Total Projects found: '#{@all_projects.length}'\n"
+print "\n04) Total Projects found: '#{@all_projects.length}'\n"
 
 @all_projects.each_with_index do |next_project,ndx_proj|
     print ' '*2

@@ -26,16 +26,11 @@ $my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
 $my_testrail_password   = 'MySecretPassword'
 
-#unless $LOAD_PATH.include?(File.dirname(__FILE__) + "/lib/" )
-#    $LOAD_PATH.unshift(File.expand_path("#{File.dirname(__FILE__)}/lib/") )
-#end
-
-
 
 # ------------------------------------------------------------------------------
 # Check that we have access to the required Ruby GEM(s).
 #
-%w{benchmark ./lib/testrail-api-master/ruby/testrail.rb}.each do |this_Require|
+%w{benchmark ../lib/testrail-api-master/ruby/testrail.rb}.each do |this_Require|
     begin
         require this_Require
     rescue LoadError
@@ -48,7 +43,7 @@ end
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
-my_vars = "./create-proj-struc.vars.rb"
+my_vars = "./MyVars.rb"
 if FileTest.exist?( my_vars )
     print "Sourcing #{my_vars}...\n"
     require my_vars

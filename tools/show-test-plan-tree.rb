@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require './lib/testrail-api-master/ruby/testrail.rb'
+require '../lib/testrail-api-master/ruby/testrail.rb'
 
 $my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
@@ -9,7 +9,7 @@ $my_testrail_password   = 'MySecretPassword'
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
-my_vars = "./show-test-plan-tree.vars.rb"
+my_vars = "./MyVars.rb"
 if FileTest.exist?( my_vars )
     print "Sourcing #{my_vars}...\n"
     require my_vars
