@@ -52,13 +52,13 @@ module RallyEIF
         @cfg_suite_ids      = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "SuiteIDs", false)
 
         # Determine how far back in time to look for updates on TR TestCases
-        @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false)
+        @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false).to_f
         if @run_days_to_search.nil?
-          @run_days_to_search = 14 # Default for how far back to search for NEW TestCases and TestResults
+          @run_days_to_search = 14.0 # Default for how far back to search for NEW TestCases and TestResults
         end
-        seconds_in_a_day = 60*60*24
-        @run_days_as_unixtime = Time.now.to_i - seconds_in_a_day*@run_days_to_search.to_i
-        
+        seconds_in_a_day = 60.0*60.0*24.0
+        @run_days_as_unixtime = (Time.now.to_f - seconds_in_a_day*@run_days_to_search).to_i
+   
         # TR_SysCell - allow user some hidden overrides via environment variables.
         # Please document here. Presents of following strings engage the option.
         #   CasesCreated  - Use created_after on search for cases instead of updated_after in find_new_testcases()
@@ -95,7 +95,7 @@ module RallyEIF
         RallyLogger.debug(self, "  Connector Name    : #{name}")
         RallyLogger.debug(self, "  Connector Version : #{version}")
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
-        RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search}")
+        RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search} (back to #{Time.at(@run_days_as_unixtime)})")
         if !@tr_sc.empty?
           RallyLogger.debug(self, "  TR_SysCell values : #{@tr_sc}")
         end
