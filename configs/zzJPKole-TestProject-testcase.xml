@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<!DOCTYPE config SYSTEM "config.dtd" [
+<!ENTITY Creds-Rally    SYSTEM "configs/Creds-zzJPKole-TestProject-Rally.xml">
+<!ENTITY Creds-TestRail SYSTEM "configs/Creds-zzJPKole-TestProject-TestRail.xml">
+]>
+<config>
+    <RallyConnection>
+        &Creds-Rally;
+        <ArtifactType>TestCase</ArtifactType>
+
+   <!-- The following is the name of the Rally custom field on a TestCase which
+        will be used by the connector to store the TestRail TestCase ID number
+        of the linked TestCase -->
+        <ExternalIDField>ExternalID</ExternalIDField>
+
+    </RallyConnection>
+
+    <TestRailConnection>
+        &Creds-TestRail;
+
+   <!-- The following is the name of the TestRail custom field (for TestCases,
+        of type String) which will be used by the connector to store the
+        Rally ObjectID of the newly created Rally TestCase -->
+        <ExternalIDField>RallyObjectID</ExternalIDField>
+
+   <!-- Optional: The following is the name of the TestRail custom field
+        on a TestCase which will be used by the connector to store the
+        Rally FormattedID of the Rally TestCase -->
+        <ExternalEndUserIDField>RallyFormattedID</ExternalEndUserIDField>
+
+   <!-- The following syntax can be used to limit the suites searched. -->
+        <!--
+        <SuiteIDs>S26</SuiteIDs>
+        -->
+        <ArtifactType>TestCase</ArtifactType>
+
+        <RunDaysToSearch>0.5</RunDaysToSearch> <!-- can be a float -->
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Name</Rally><Other>Title</Other></Field>
+        </FieldMapping>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+    </ConnectorRunner>
+</config>

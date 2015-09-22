@@ -6,6 +6,9 @@ module RallyEIF
 
       class CreateTestSets < PostServiceAction
 
+        #-Proposed-#
+        #@rally_cached_ts = Hash.new # cache of Rally TestSets index by ObjectID
+        
         def setup(action_config, rally_conn, other_conn)
           super(action_config, rally_conn, other_conn)
           if other_conn.artifact_type != :testresult
@@ -96,9 +99,27 @@ module RallyEIF
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
-          RallyLogger.info(self, "In Rally, adding TestCase '#{rally_test_case}' to TestSet '#{rally_test_set['ObjectID']}'")
-          
+          #-Current-#
           test_set = @rally_connection.rally.read('testset', rally_test_set['ObjectID'])
+          #-Proposed-#
+          # Should save the above Rally TestSets in a cache?
+          # New proposed code:
+          # objectid = rally_test_set['ObjectID']
+          # if @rally_cached_ts[objectid].nil?
+          #   # not in cache... so read it from Rally
+          #   test_set = @rally_connection.rally.read('testset', objectid)
+          #   @rally_cached_ts[objectid] = test_set
+          #   str1 = 'Cached'
+          # else
+          #   test = @rally_cached_ts[rally_test_set['ObjectID']]
+          #   str1 = 'Retrieved'
+          # end
+          
+          #-Current-#
+          RallyLogger.info(self, "Rally TestSet '#{test_set.FormattedID}/#{test_set.ObjectID}' currently has '#{test_set.TestCases.length}' TestCases")
+          #-Proposed-#
+          # RallyLogger.info(self, "#{str1} Rally TestSet '#{test_set.FormattedID}/#{test_set.ObjectID}' currently has '#{test_set.TestCases.length}' TestCases")
+          RallyLogger.info(self, "\tadding Rally TestCase '#{rally_test_case.FormattedID}/#{rally_test_case._refObjectName}' to above Rally TestSet")
           
           associated_test_cases = test_set['TestCases'] || []
           associated_test_cases = associated_test_cases.push(rally_test_case)
@@ -111,13 +132,18 @@ module RallyEIF
 
           begin
             fields = { 'TestCases' => refs }
-  
+            #-Current-#
             rally_test_set.update(fields)
+            #-Proposed-#
+            # updated_rally_test_set = rally_test_set.update(fields)
+            # @rally_cached_ts[objectid] = updated_rally_test_set
           rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
-            RallyLogger.warning(self, "\tfields: '#{fields}'")
+            #RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
+            RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_set}'")
+            RallyLogger.warning(self, "\tattempting to add '#{refs.length}' testcases to testset")
+            #RallyLogger.warning(self, "\tfields: '#{fields}'")
             RallyLogger.warning(self, "\t   msg: '#{ex.message}'")
-            raise RecoverableException.new(ex, self)
+            raise RecoverableException.copy(ex, self)
           end
         end # of 'def add_testcase_to_test_set(rally_test_case,rally_test_set)'
         
@@ -126,8 +152,10 @@ module RallyEIF
           RallyLogger.debug(self, "Running post process to associate test runs to test sets in Rally...")
          
           runs,run_ids = @other_connection.find_test_runs()
+          RallyLogger.debug(self, "Found '#{run_ids.length}' run(s); ID's: '#{run_ids}'")
           
-          runs.each do |run|
+          runs.each_with_index do |run,run_ndx|
+            RallyLogger.debug(self, "Processing 'run #{run_ndx+1}-of-#{runs.length}'; plan_id='#{run['plan_id']}'")
             #-----
             # For each run:
             #   1) Get TestRail TestPlan ID for this TestRun
@@ -164,6 +192,9 @@ module RallyEIF
                 run_name = run_name + "#{run['config']}"
               end
               rally_test_set = create_rally_test_set(run_name)
+              RallyLogger.debug(self, "TestSet created: '#{rally_test_set.FormattedID}'")
+            else
+              RallyLogger.debug(self, "TestSet found: '#{rally_test_set.FormattedID}'")
             end
             if rally_test_set.nil?
               RallyLogger.error(self, "Failed to find or create a testset in Rally; name='#{run_name}'")
@@ -193,14 +224,16 @@ module RallyEIF
             testcases_for_run.each do |testcase|
               if !testcase[cfsys(@other_connection.external_id_field)].nil?
                 rally_testcase = find_rally_test_case_by_oid(testcase[cfsys(@other_connection.external_id_field)])
-                add_testcase_to_test_set(rally_testcase,rally_test_set)
+                if !rally_testcase.nil?
+                  add_testcase_to_test_set(rally_testcase,rally_test_set)
+                end
               else
                 RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
               end
             end
           end # of 'runs.each do |run|'
-          
-          RallyLogger.info(self,"Associate TestResult with the TestSet")
+
+          RallyLogger.info(self,"Associate '#{tr_testresults_list.length}' TestResult(s) with the TestSet")
           tr_testresults_list.each do |testresult|
             RallyLogger.debug(self,"TestRail testresult: id='#{testresult['id']}'  test_id='#{testresult['status_id']}'  status_id='#{testresult['status_id']}'")
             RallyLogger.debug(self,"\t    _test: id='#{testresult['_test']['id']}'  case_id='#{testresult['_test']['case_id']}'  run_id='#{testresult['_test']['run_id']}'")
@@ -214,14 +247,18 @@ module RallyEIF
             rally_result = @rally_connection.find_result_with_build(testresult['id'])
             if !rally_result.nil? && !rally_test_set.nil?
               fields = { 'TestSet' => {'_ref'=>rally_test_set['_ref']} }
-              rally_result.update(fields)
+              begin
+                rally_result.update(fields)
+              rescue Exception => ex
+                raise RecoverableException.new("Could not add #{rally_test_set.FormattedID} to #{rally_result._ref}\nMessage: #{ex.message}", self)
+              end
             else
-              RallyLogger.info(self, "No result found in Rally: '#{testresult['id']}'")
+              RallyLogger.info(self, "No result found in Rally with Build: '#{testresult['id']}'")
             end
-          end
+          end # of 'tr_testresults_list.each do |testresult|'
           
           RallyLogger.debug(self, "Completed running post process to associate test runs to test sets in Rally.")
-        end # of 'def process_results_newbyjp(tr_testresults_list)'
+        end # of 'def process_results(tr_testresults_list)'
 
         def find_rally_story_with_plan_id(plan_id)
           plan_id_field_on_stories = @other_connection.rally_story_field_for_plan_id

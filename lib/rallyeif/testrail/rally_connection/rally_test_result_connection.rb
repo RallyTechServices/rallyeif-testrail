@@ -69,7 +69,7 @@ module RallyEIF
       end
       
       def find_result_with_build(build)
-        RallyLogger.debug(self,"Build: #{build}")
+        RallyLogger.debug(self,"Find TestCaseResult with Build: '#{build}'")
         begin
           query_result = @rally.find do |q|
             q.type      = 'testcaseresult'
@@ -79,7 +79,10 @@ module RallyEIF
           end
         rescue Exception => ex
           raise UnrecoverableException.copy(ex, self)
-        end        
+        end
+        if query_result.length > 1
+          RallyLogger.warning(self, "Found '#{query_result.length}' TestCaseResults with Build: '#{build}'; using first")
+        end
         return query_result.first
       end
       

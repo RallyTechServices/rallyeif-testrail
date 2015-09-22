@@ -116,14 +116,14 @@ describe "When trying to find TestRail test case results" do
                                                             'case_ids'   => [testcase_id]
                                                        }]
                                   }]
-                    }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     # 6 - Create a TestResult
     extra_fields = { 
-      'run_id' => testplan['entries'][0]['runs'][0]['id'], 
-      'case_id' => testcase['id'],
+      'run_id'     => testplan['entries'][0]['runs'][0]['id'], 
+      'case_id'    => testcase['id'],
       'section_id' => section['id']
     }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
@@ -169,7 +169,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase2_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
     
@@ -219,7 +219,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
@@ -261,7 +261,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
@@ -285,6 +285,15 @@ describe "When trying to find TestRail test case results" do
 
     expect{ @connection_testresult.find_updates(time) }.to raise_error(/Not available for "testresult"/)
     
+  end
+  
+  it "(6), should raise an exception when trying to find update on a test run" do
+      
+    # 1 - Find all 'new' Runs (not supported by the code)
+    time = (Time.now() - 600).utc
+
+    expect{ @connection_testrun.find_updates(time) }.to raise_error(/Not available for "testrun"/)
+  
   end
   
 end
