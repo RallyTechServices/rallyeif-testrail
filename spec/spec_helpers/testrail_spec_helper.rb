@@ -32,6 +32,7 @@ module TestRailSpecHelper
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
         <Project>#{TestConfig::TR_PROJECT}</Project>
+        <RunDaysToSearch>8.8</RunDaysToSearch>
       </TestRailConnection>
     </config>"
 
