@@ -34,7 +34,7 @@
         -->
         <ArtifactType>TestCase</ArtifactType>
 
-        <RunDaysToSearch>3</RunDaysToSearch>
+        <RunDaysToSearch>0.5</RunDaysToSearch> # can be a float
     </TestRailConnection>
 
     <Connector>
