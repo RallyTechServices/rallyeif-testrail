@@ -20,7 +20,7 @@
 
         <ArtifactType>TestResult</ArtifactType>
 
-        <RunDaysToSearch>3</RunDaysToSearch>
+        <RunDaysToSearch>0.5</RunDaysToSearch> # can be a float
 
    <!-- The following is the name of the Rally custom field (for User Stories,
         of type String) which will be used by the connector to store the
