@@ -6,6 +6,9 @@ module RallyEIF
 
       class CreateTestSets < PostServiceAction
 
+        #-Proposed-#
+        #@rally_cached_ts = Hash.new # cache of Rally TestSets index by ObjectID
+        
         def setup(action_config, rally_conn, other_conn)
           super(action_config, rally_conn, other_conn)
           if other_conn.artifact_type != :testresult
@@ -96,9 +99,26 @@ module RallyEIF
         end
         
         def add_testcase_to_test_set(rally_test_case,rally_test_set)
+          #-Current-#
           test_set = @rally_connection.rally.read('testset', rally_test_set['ObjectID'])
-
+          #-Proposed-#
+          # Should save the above Rally TestSets in a cache?
+          # New proposed code:
+          # objectid = rally_test_set['ObjectID']
+          # if @rally_cached_ts[objectid].nil?
+          #   # not in cache... so read it from Rally
+          #   test_set = @rally_connection.rally.read('testset', objectid)
+          #   @rally_cached_ts[objectid] = test_set
+          #   str1 = 'Cached'
+          # else
+          #   test = @rally_cached_ts[rally_test_set['ObjectID']]
+          #   str1 = 'Retrieved'
+          # end
+          
+          #-Current-#
           RallyLogger.info(self, "Rally TestSet '#{test_set.FormattedID}/#{test_set.ObjectID}' currently has '#{test_set.TestCases.length}' TestCases")
+          #-Proposed-#
+          # RallyLogger.info(self, "#{str1} Rally TestSet '#{test_set.FormattedID}/#{test_set.ObjectID}' currently has '#{test_set.TestCases.length}' TestCases")
           RallyLogger.info(self, "\tadding Rally TestCase '#{rally_test_case.FormattedID}/#{rally_test_case._refObjectName}' to above Rally TestSet")
           
           associated_test_cases = test_set['TestCases'] || []
@@ -112,7 +132,11 @@ module RallyEIF
 
           begin
             fields = { 'TestCases' => refs }
+            #-Current-#
             rally_test_set.update(fields)
+            #-Proposed-#
+            # updated_rally_test_set = rally_test_set.update(fields)
+            # @rally_cached_ts[objectid] = updated_rally_test_set
           rescue Exception => ex
             #RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_case}'")
             RallyLogger.warning(self, "EXCEPTION occurred on Rally 'update' of testset '#{rally_test_set}'")
