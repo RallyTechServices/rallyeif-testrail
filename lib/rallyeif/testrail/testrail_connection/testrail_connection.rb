@@ -97,7 +97,7 @@ module RallyEIF
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
         RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search} (back to #{Time.at(@run_days_as_unixtime)})")
         if !@tr_sc.empty?
-          RallyLogger.debug(self, "  TR_SysCell values : #{@tr_sc}")
+          RallyLogger.debug(self, "  ENV TR_SysCell    : #{@tr_sc}")
         end
         RallyLogger.debug(self, "********************************************************")
         
