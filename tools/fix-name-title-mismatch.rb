@@ -3,9 +3,17 @@
 # Script:
 #       fix-name-title-mismatch.rb
 # Purpose:
-#       A Ruby script used for finding and fixing Rally TestCases whose "Name"
-#       does not match the corresponding TestRail TestCase "Title".
+#       A Ruby script used for finding all TestRail TestCases which are linked
+#       to a Rally TestCase.  If the "Title" field on the TestRail TestCase does
+#       not match the "Name" field on the linked Rally TestCase, then the Rally
+#       TestCase "Name" field is modified to match (assuming the special flag
+#       is given on the command line).
+# Usage:
+#       fix-name-title-mismatch.rb  [--FixThemAll]
 #
+#       Where the argument "--FixThemAll" is used to actually modify the "Name"
+#       field on the Rally TestCases to match the corresponding TestRail
+#       TestCase "Title".
 # ============================================================================ #
 
 $my_rally_base_url      = 'https://demo-test.rallydev.com/slm'
@@ -24,15 +32,34 @@ require 'rally_api'
 
 
 # ------------------------------------------------------------------------------
-# Error exit codes.
+# Error exit codes.  Failed when...
 #
-ERR_EXIT_GETPROJS   = -1    # Failed when geting information about all TestRail projects.
-ERR_EXIT_NOPROJS    = -2    # Failed when trying to find projects in TestRail.
-ERR_EXIT_PROJNF     = -3    # Failed when trying to find desired TestRail project.
-ERR_EXIT_SUITES     = -4    # Failed when getting all Suite information.
-ERR_EXIT_TESTCASES  = -5    # Failed when getting all TestCase information.
-ERR_EXIT_RALLYFIND  = -6    # Failed when querying Rally for TestCase.
-ERR_EXIT_RALLY_UPD  = -7    # Failed when trying to update Rally TestCase.
+ERR_EXIT_GETPROJS   = -1    # ... getting information about all TestRail projects.
+ERR_EXIT_NOPROJS    = -2    # ... trying to find projects in TestRail.
+ERR_EXIT_PROJNF     = -3    # ... trying to find desired TestRail project.
+ERR_EXIT_SUITES     = -4    # ... getting all Suite information.
+ERR_EXIT_TESTCASES  = -5    # ... getting all TestCase information.
+ERR_EXIT_RALLYFIND  = -6    # ... querying Rally for TestCase.
+ERR_EXIT_RALLY_UPD  = -7    # ... trying to update Rally TestCase.
+ERR_EXIT_ARGS2MANY  = -8    # Too many command line args.
+ERR_EXIT_ARGINVALID = -9    # Invalid command line arg.
+
+
+# ------------------------------------------------------------------------------
+# Validate command line argument.
+#
+def check_arg()
+    if ARGV.length > 1
+        print "ERROR: Too many command line args.\n"
+        print "USAGE: #{$PROGRAM_NAME}  [--FixThemAll]\n"
+        exit ERR_EXIT_ARGS2MANY
+    end
+    if ARGV.length == 1 && ARGV[0] != '--FixThemAll'
+        print "ERROR: Invalid argument on command line: '#{ARGV[0]}'\n"
+        print "USAGE: #{$PROGRAM_NAME}  [--FixThemAll]\n"
+        exit ERR_EXIT_ARGINVALID
+    end
+end
 
 
 # ------------------------------------------------------------------------------
@@ -269,6 +296,7 @@ end
 #
 # Main
 #
+check_arg()
 get_my_vars()
 connect_to_testrail()
 connect_to_rally()
@@ -303,9 +331,7 @@ items_on_line = 0
     end
     if items_on_line != 0 && items_on_line%5 == 0 # print 5 items per line
         print "\n\t\t"
-        items_on_line = 1
-    else
-        items_on_line = items_on_line + 1
+        items_on_line = 0
     end
 end
 
