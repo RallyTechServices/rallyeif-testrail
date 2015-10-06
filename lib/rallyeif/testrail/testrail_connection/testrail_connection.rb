@@ -816,10 +816,10 @@ module RallyEIF
         runs, run_ids = find_test_runs()
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
         RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
-        uri_date = "&created_after=#{@run_days_as_unixtime}"
-        
+
         test_results = []
         uri_call = 'get_results_for_run'
+        uri_date = "&created_after=#{@run_days_as_unixtime}"
         runs.each do |run|
           begin
             uri_runid = "/#{run['id']}"
