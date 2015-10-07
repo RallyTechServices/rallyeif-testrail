@@ -19,6 +19,11 @@ $my_headers = RallyAPI::CustomHttpHeader.new()
 $my_headers.name    = 'test-tool.rb'
 $my_headers.vendor  = 'JP code'
 $my_headers.version = '3.14159'
+
+# removing trailing '/' if present and add '/slm' if needed
+$my_base_url = $my_base_url.chomp('/')
+$my_base_url << '/slm' if !$my_base_url.end_with?('/slm')
+
 config = {  :base_url   => $my_base_url,
             :username   => $my_username,
             :password   => $my_password,
