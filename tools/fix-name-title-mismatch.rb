@@ -11,9 +11,12 @@
 # Usage:
 #       fix-name-title-mismatch.rb  [--FixThemAll]
 #
-#       Where the argument "--FixThemAll" is used to actually modify the "Name"
-#       field on the Rally TestCases to match the corresponding TestRail
-#       TestCase "Title".
+#       01) The optional argument "--FixThemAll" is used to actually modify
+#           the "Name" field on the Rally TestCases to match the corresponding
+#           TestRail TestCase "Title".  Without this argument, the mismatched
+#           items are only displayed.
+#       02) Modify the ten variables below ($my_rally_* and $my_testrail_*)
+#           to fit your environment.
 # ============================================================================ #
 
 $my_rally_base_url      = 'https://demo-test.rallydev.com/slm'
@@ -101,6 +104,10 @@ end
 # Connect to Rally.
 #
 def connect_to_rally()
+    # removing trailing '/' if present and add '/slm' if needed
+    $my_rally_base_url = $my_rally_base_url.chomp('/')
+    $my_rally_base_url << '/slm' if !$my_rally_base_url.end_with?('/slm')
+
     print "\n--------------------------------------------------------\n"
     print "03) Connecting to Rally at:\n"
     print "\tBaseURL  : <#{$my_rally_base_url}>\n"
