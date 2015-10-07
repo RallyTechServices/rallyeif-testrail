@@ -101,10 +101,18 @@ end
 # Connect to Rally.
 #
 def connect_to_rally()
+    print "\n--------------------------------------------------------\n"
+    print "03) Connecting to Rally at:\n"
+    print "\tBaseURL  : <#{$my_rally_base_url}>\n"
+    print "\tUserName : <#{$my_rally_username}>\n"
+    print "\tWorkspace: <#{$my_rally_workspace}>\n"
+    print "\tProject  : <#{$my_rally_project}>\n"
+    print "\tVersion  : <#{$my_rally_version}>\n"
+
     $my_rally_headers = RallyAPI::CustomHttpHeader.new()
     $my_rally_headers.name    = 'fix-name-title-mismatch.rb'
     $my_rally_headers.vendor  = 'Technical-Services'
-    $my_rally_headers.version = '1.234'
+    $my_rally_headers.version = '1.235'
 
     config = {  :base_url   => $my_rally_base_url,
                 :username   => $my_rally_username,
@@ -116,14 +124,6 @@ def connect_to_rally()
     }
 
     @rally_con = RallyAPI::RallyRestJson.new(config)
-
-    print "\n--------------------------------------------------------\n"
-    print "03) Connected to Rally:\n"
-    print "\tBaseURL  : <#{$my_rally_base_url}>\n"
-    print "\tUserName : <#{$my_rally_username}>\n"
-    print "\tWorkspace: <#{$my_rally_workspace}>\n"
-    print "\tProject  : <#{$my_rally_project}>\n"
-    print "\tVersion  : <#{$my_rally_version}>\n"
     return @rally_con
 end
 
@@ -192,7 +192,7 @@ def get_project_info()
     @tr_suites.each_with_index do |this_suite, index_suite|
         suiteids.push(this_suite['id'])
     end
-    print "\n\tFound '#{@tr_suites.length}' suites in the project: ''#{suiteids}'\n"
+    print "\n\tFound '#{@tr_suites.length}' suites in the project: '#{suiteids}'\n"
 
     return @tr_proj_info, @tr_suites
 end
@@ -205,7 +205,8 @@ def get_all_testcases()
     print "\n--------------------------------------------------------\n"
     print "05) Getting all TestRail testcases in project '#{$my_testrail_project}'...\n"
 
-    # Get all TEstCases in each suite...
+    # Get all TestCases in each suite...
+    tot_tc = 0
     @tr_testcases_per_suite = Array.new # each element is all testcases in a suite
     @tr_suites.each_with_index do |this_suite,index_suite|
         uri = "get_cases/#{@tr_proj_info['id']}&suite_id=#{this_suite['id']}"
@@ -219,7 +220,9 @@ def get_all_testcases()
         end
         print "\tFound '#{all_cases.length}' testcases in suite '#{this_suite['id']}'\n"
         @tr_testcases_per_suite.push(all_cases)
+        tot_tc += all_cases.length
     end
+    print "\tTotal: '#{tot_tc}' testcases found.\n"
 
     # Step through all suites...
     tots=0
@@ -230,9 +233,11 @@ def get_all_testcases()
             # Save only TestCases which have a populated custom field 'RallyObjectID'...
             if !this_case['custom_rallyobjectid'].nil?
                 @tc_titles[this_case['custom_rallyobjectid']] = [this_case['custom_rallyformattedid'], this_case['id'], this_case['title']]
+                tots += 1
             end
         end
     end
+    print "\tFound '#{tots}' testcases linked to Rally\n"
 end
 
 
@@ -304,7 +309,7 @@ get_project_info()
 get_all_testcases()
 
 print "\n--------------------------------------------------------\n"
-print "06) Search for mismatching TestRail-Title/Rally-Name fields...\n"
+print "06) Search all linked testcases for mismatching TestRail-Title/Rally-Name fields...\n"
 print "\tTestRailid-RallyFormattedID:\n\t\t"
 mismatching = Hash.new
 items_on_line = 0
