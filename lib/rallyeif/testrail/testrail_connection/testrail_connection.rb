@@ -97,7 +97,7 @@ module RallyEIF
         RallyLogger.debug(self, "  Artifact Type     : #{artifact_type}")
         RallyLogger.debug(self, "  Run days to search: #{@run_days_to_search} (back to #{Time.at(@run_days_as_unixtime)})")
         if !@tr_sc.empty?
-          RallyLogger.debug(self, "  TR_SysCell values : #{@tr_sc}")
+          RallyLogger.debug(self, "  ENV TR_SysCell    : #{@tr_sc}")
         end
         RallyLogger.debug(self, "********************************************************")
         
@@ -816,10 +816,10 @@ module RallyEIF
         runs, run_ids = find_test_runs()
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
         RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
-        uri_date = "&created_after=#{@run_days_as_unixtime}"
-        
+
         test_results = []
         uri_call = 'get_results_for_run'
+        uri_date = "&created_after=#{@run_days_as_unixtime}"
         runs.each do |run|
           begin
             uri_runid = "/#{run['id']}"
