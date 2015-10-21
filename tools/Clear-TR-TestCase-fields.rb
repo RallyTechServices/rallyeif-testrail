@@ -1,16 +1,18 @@
 #!/usr/bin/env ruby
 # ------------------------------------------------------------------------------
 # SCRIPT:
-#       Clear-TR-fields.rb
+#       Clear-TR-TestCase-fields.rb
 #
 # PURPOSE:
-#       Clears the two fields "RallyObjectID" and "RallyFormattedID" on all
-#       TestRails TestCases in a given project.
+#       A script used to clear the values from custom fields on TestCase objects
+#       in a desired TestRail Project.
 #
-# ASSUMES:
+# ASSUMPTIONS:
 #       1) All custom fields are of type 'String'.
-#       2) A custom field named 'dog' can be specified on the command line as
-#          either 'dog' or 'custom_dog'
+#       2) A custom field named 'foo' can be specified on the command line as
+#          either 'foo' or 'custom_foo'
+#       3) The user of this script will modify the variable '@stop_after' for
+#          their purposes.
 #
 $MU = <<end_of_usage
 \n--------------------------------------------------------
@@ -48,6 +50,7 @@ ERR_EXIT_FIELDINV   = -5    # ... a field name was invalid.
 ERR_EXIT_SUITES     = -6    # ... getting Suites form desired project.
 ERR_EXIT_CUSTOMTC   = -7    # ... getting custom fields on TestCases.
 ERR_EXIT_PROJGET    = -8    # ... getting information about all TestRail Projects.
+ERR_EXIT_CONNECT    = -9    # ... connecting to TestRails.
 
 
 # ------------------------------------------------------------------------------
@@ -122,7 +125,14 @@ def connect_to_testrail()
     print "\tURL     : #{$my_testrail_url}\n"
     print "\tUser    : #{$my_testrail_user}\n"
     print "\tPassword: ********\n"
-    @tr_con          = TestRail::APIClient.new($my_testrail_url)
+    begin
+        @tr_con = TestRail::APIClient.new($my_testrail_url)
+    rescue Exception => ex
+        print "\tEXCEPTION occurred when connecting to TestRail API:\n"
+        print "\t#{ex.message}\n"
+        print "\tFailed to connect with TestRail.\n"
+        exit ERR_EXIT_CONNECT
+    end
     @tr_con.user     = $my_testrail_user
     @tr_con.password = $my_testrail_password
     return @tr_con
@@ -130,7 +140,7 @@ end
 
 
 # ------------------------------------------------------------------------------
-# Get a list of all valid field names for TestRail TestCase objects.
+# Get a list of all custom field names for TestRail TestCase objects.
 #
 def get_case_fields()
     @tc_fields = []
@@ -150,7 +160,7 @@ def get_case_fields()
         @tc_fields.push(this_CF['system_name'])
     end
     print "\n--------------------------------------------------------\n"
-    print "05) Valid field names for a TestRail TestCase object:\n"
+    print "05) Valid custom field names for a TestRail TestCase object:\n"
     print "\t#{@tc_fields}\n"
     return @tc_fields
 end
@@ -162,6 +172,8 @@ end
 def find_requested_project()
     print "\n--------------------------------------------------------\n"
     print "06) Find desired project: '#{@desired_project}'\n"
+
+    # Get a list of all projects...
     begin
         uri = 'get_projects'
         all_projects = @tr_con.send_get(uri)
@@ -178,6 +190,7 @@ def find_requested_project()
         exit ERR_EXIT_NOPROJECTS
     end
 
+    # Found our desired project in the list...
     @target_proj = nil
     all_projects.each do |this_PROJECT|
         if this_PROJECT['name'] == @desired_project
@@ -190,12 +203,11 @@ def find_requested_project()
             end
         end
     end
-   
     if @target_proj.nil?
         print "\tERROR: Can't find desired project '#{@desired_project}'\n"
         exit ERR_EXIT_PROJECTINV
     end
-    print "\tUsing desired project '#{@target_proj['name']} (id=#{@target_proj['id']}).\n"
+    print "\tUsing desired project '#{@target_proj['name']}' (id=#{@target_proj['id']}).\n"
 
     # Get all suites in our desired project...
     if @target_proj['suite_mode'] != 3
@@ -211,7 +223,7 @@ def find_requested_project()
             print "\tFailed to get information about all TestRail suites in desired project.\n"
             exit ERR_EXIT_SUITES
         end
-        print "\n\tFound '#{@target_suites.length}' suites in the desired project: '['"
+        print "\n\tFound '#{@target_suites.length}' suites in the desired project: ["
         suiteids = Array.new # Build an array of suite ID's for display...
         @target_suites.each_with_index do |this_suite, ndx_suite|
             suiteids.push(this_suite['id'])
@@ -219,7 +231,6 @@ def find_requested_project()
             print "#{this_suite['id']}='#{this_suite['name']}'#{sep}"
         end
     end
-
     return @target_proj, @target_suites
 end
 
@@ -251,6 +262,7 @@ def check_requested_fields()
         print "\tERROR: Invalid field name(s) found (above); exiting'\n"
         exit ERR_EXIT_FIELDINV
     end
+    return
 end
 
 
@@ -260,6 +272,8 @@ end
 def get_all_testcases()
     print "\n--------------------------------------------------------\n"
     print "08) Get all TestRail TestCases in desired project...\n"
+
+    # Step thru all Suites, getting all TestCase in each Suite...
     @all_testcases = Array.new
     @target_suites.each_with_index do |this_suite, ndx_suite|
         begin
@@ -268,14 +282,15 @@ def get_all_testcases()
         rescue Exception => ex
             print "\tEXCEPTION occurred on TestRail API 'send_get(#{uri})':\n"
             print "\t#{ex.message}\n"
-            print "\tFailed to get TestCases from Suite.\n"
+            print "\tFailed to get TestCases from Suite '#{this_suite['id']}'.\n"
             exit ERR_EXIT_SUITES
         end
-        print "\tFound '#{testcases.length}' testcases in Suite.\n"
+        print "\tFound '#{testcases.length}' testcases in Suite '#{this_suite['id']}'.\n"
         @all_testcases.concat(testcases)
     end
     print "\tFound a total of '#{@all_testcases.length}' testcases in Suite.\n"
 
+    # Determine which need to be updated (i.e. new does not equal current value)...
     @testcases_2b_updated = {}
     update_yes = 0
     update_no  = 0
@@ -298,11 +313,12 @@ def get_all_testcases()
         end
     end
     print "\tFound '#{update_yes}' that need updating, and '#{update_no}' that do not.\n"
+    return @testcases_2b_updated
 end
 
 
 # ------------------------------------------------------------------------------
-# Step thru and updsate each...
+# Step thru all TestCases and modify them.
 #
 def update_all_testcases()
     print "\n--------------------------------------------------------\n"
@@ -328,6 +344,7 @@ def update_all_testcases()
             exit OK_EXIT_STOPAFTER
         end
     end
+    return
 end
 
 
