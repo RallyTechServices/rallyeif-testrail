@@ -143,6 +143,8 @@ end
 # Get a list of all custom field names for TestRail TestCase objects.
 #
 def get_case_fields()
+    print "\n--------------------------------------------------------\n"
+    print "05) Valid custom field names for a TestRail TestCase object:\n"
     @tc_fields = []
 
     # Get all the custom field names...
@@ -159,8 +161,6 @@ def get_case_fields()
     @tr_case_custfields.sort_by { |rec| rec['id']}.each do |this_CF|
         @tc_fields.push(this_CF['system_name'])
     end
-    print "\n--------------------------------------------------------\n"
-    print "05) Valid custom field names for a TestRail TestCase object:\n"
     print "\t#{@tc_fields}\n"
     return @tc_fields
 end
