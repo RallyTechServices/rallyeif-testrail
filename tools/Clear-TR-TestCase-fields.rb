@@ -37,7 +37,7 @@ $my_testrail_url        = 'https://mine.testrail.com'
 $my_testrail_user       = 'mine@rallydev.com'
 $my_testrail_password   = 'FooBar'
 
-@stop_after             = 5 # Modify this many TestRail TestCases and then quit.
+@stop_after             = 10 # Modify this many TestRail TestCases and then quit.
 
 
 # ------------------------------------------------------------------------------
@@ -340,7 +340,7 @@ def update_all_testcases()
         else
             puts "Test mode: NOTHING DONE."
         end
-        print "\tFixed object id '#{this_tc[0]}'   old='#{this_tc[1][0]}'  new='#{this_tc[1][1]}'\n"
+        print "\t(#{ndx_tc+1}/#{@testcases_2b_updated.length}) Fixed object id '#{this_tc[0]}'   old='#{this_tc[1][0]}'  new='#{this_tc[1][1]}'\n"
         total_done += 1
         if total_done >= @stop_after
             print "\n\n\tNOTE: Script variable '@stop_after' is set to '#{@stop_after}'; exiting...\n"
