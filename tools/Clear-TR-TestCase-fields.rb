@@ -7,6 +7,9 @@
 #       A script used to clear the values from custom fields on TestCase objects
 #       in a desired TestRail Project.
 #
+# VERSION:
+#       2.0
+#
 # ASSUMPTIONS:
 #       1) All custom fields are of type 'String'.
 #       2) A custom field named 'foo' can be specified on the command line as
