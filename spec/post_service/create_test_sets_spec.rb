@@ -84,6 +84,8 @@ describe "When creating test sets for test case results" do
     @items_to_remove_testsection  = []
 
     @rally_connection = YetiTestUtils::rally_tr_connect(TestRailSpecHelper::RALLY_HIERARCHICAL_CONFIG)
+    #@TestRailConnection   = RallyEIF::WRK::PostServiceActions::CreateTestSets.new
+    #@RallyConnection      = TestRailSpecHelper::rally_connect(TestRailSpecHelper::TESTRAIL_CONNECTOR_STANDARD_CONFIG)
     @items_to_remove_rally = []
   end
   
@@ -212,6 +214,36 @@ describe "When creating test sets for test case results" do
     expect(created_test_set.Iteration.ObjectID).to eq(rally_iteration.ObjectID)
     
   end
+
+#  it "(3), should call JPKole, then add a Rally TestCase to a Rally TestSet" do
+#    # Create a Rally TestCase
+#    test_case_fields = {
+#      'Name'        => 'TestRail connector: A Rally TestCase',
+#      'Description' => 'TC Description in Rally',
+#      'Method'      => 'Manual',
+#      'Type'        => 'Acceptance'
+#    }
+#    rally_test_case, rally_test_case_name = YetiTestUtils::create_arbitrary_rally_artifact('TestCase',@rally_connection, test_case_fields)
+#    @items_to_remove_rally.push(rally_test_case)
+#
+#    # Create a Rally TestSet
+#    test_set_fields = {
+#      'Name'            => 'TestRail connector: A Rally TestSet',
+#      'Description'     => 'TS Description in Rally',
+#      'Notes'           => 'TS Notes in Rally',
+#      'Blocked'         => false,
+#      'ScheduleState'   => 'Idea'
+#    }
+#    rally_test_set, rally_test_set_name = YetiTestUtils::create_arbitrary_rally_artifact('TestCase',@rally_connection, test_set_fields)
+#    @items_to_remove_rally.push(rally_test_set)
+#    updated_testset = @TestRailConnection.add_testcase_to_test_set(rally_test_case,rally_test_set)
+#
+#    #
+#    # JP stopped working on it here 4-nov-2015
+#    #
+#    expect(0).to eq(0)
+#  end
+
   
 # Removed for now (20-Aug-2015) becuase customer decided they did
 # not want to copy test sets if the test run’s test plan id isn’t in a story
