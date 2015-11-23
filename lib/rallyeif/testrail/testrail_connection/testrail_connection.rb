@@ -27,12 +27,18 @@ module RallyEIF
       @testrail           = '' # The connecton packet used to make request.
       @tr_project         = {} # Information about project in config file.
       @all_suites         = {} # All suites in the project.
+      @all_plans          = {} # All plans in the project (to be added... limit by PlanID's)
       @all_sections       = {} # All sections in the project
       @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
       @tr_cust_fields_tcr = {} # Hash of custom fields on test case result.
       @tr_fields_tc       = {} # Hash of standard fields on test case.
       @tr_fields_tcr      = {} # Hash of standard fields on test case result.
       @tr_user_info       = {} # TestRail information about user in config file.
+
+      @@cach_tcs = true
+      if @@cach_tcs
+        @@cached_tcs = Hash.new(0) # perf test
+      end
       
       def initialize(config=nil)
         super()
@@ -50,6 +56,7 @@ module RallyEIF
 
         @section_id         = nil
         @cfg_suite_ids      = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "SuiteIDs", false)
+        @cfg_plan_ids       = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "PlanIDs", false) # (to be added... limit by PlanID's)
 
         # Determine how far back in time to look for updates on TR TestCases
         @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false).to_f
@@ -182,6 +189,18 @@ module RallyEIF
         end
         RallyLogger.debug(self, "Future searches will #{mesg}: '#{@all_suite_ids}'")
 
+        # Handle config file: <PlanIDs>1,2,3,4</PlanIDs>
+        # (to be added... limit by PlanID's)
+        #
+        # ...code here...
+        #   I beleive the code would be something like:
+        #       - GET index.php?/api/v2/get_plans/:project_id
+        #       - then iterate thru all the plans:
+        #           - then iterate thru all the entries in a plan: (maybe be only one?)
+        #               - then iterate thru all the runs in an entry:
+        #                   - if the suite_id of this run is in the list '@all_suite_ids', then keep it
+        #                     otherwise throw it away
+        #       - exit with an updated list of suites
 
         # Build section info...
         @tr_section_ids = Array.new
@@ -552,6 +571,12 @@ module RallyEIF
 #---------------------#
       def disconnect()
         RallyLogger.info(self,"Would disconnect at this point if we needed to")
+        if @@cach_tcs
+          RallyLogger.debug(self, "Test: would keeping a TestCase hash help?")
+          RallyLogger.debug(self, "----------Dump Begin----------")
+          RallyLogger.debug(self, "#{@@cached_tcs}")
+          RallyLogger.debug(self, "----------Dump End------------")
+        end
       end
 #---------------------#
       def field_exists? (field_name)
@@ -611,6 +636,9 @@ module RallyEIF
           when 'testcase'
             uri = "get_case/#{item['id']}"
             found_item = @testrail.send_get(uri)
+            if @@cach_tcs
+              @@cached_tcs[item]+=1 # perf test
+            end
           
           when 'test'
             uri = "get_test/#{item['id']}"
@@ -815,7 +843,7 @@ module RallyEIF
         # have to iterate over the runs
         runs, run_ids = find_test_runs()
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
-        RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
+        RallyLogger.info(self, "Find new TestRail 'testresult' objects created after '#{Time.at(@run_days_as_unixtime)}' for these '#{run_ids.length}' run_id(s): #{run_ids}")
 
         test_results = []
         uri_call = 'get_results_for_run'
