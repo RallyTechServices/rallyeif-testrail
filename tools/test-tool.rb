@@ -6,7 +6,7 @@
 
 $my_base_url    = 'https://demo-services1.rallydev.com/slm'
 $my_username    = 'paul@acme.com'
-$my_password    = 'RallyON!'
+$my_password    = 'Motivate!'
 $my_workspace   = 'Integrations'
 $my_version     = 'v2.0'
 
