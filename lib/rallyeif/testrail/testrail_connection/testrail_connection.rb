@@ -964,127 +964,77 @@ module RallyEIF
       def testrail_send(*args)
         
         func, uri, fields = *args
-        
-        current_time = Time.now.to_f
-        time_since_previous_call = current_time - @tr_api_time_of_previous_call
-        if @tr_api_time_of_first_call == -1.0
-          time_since_previous_call      = 0.0
-          @tr_api_time_of_first_call    = current_time
-          @tr_api_time_of_previous_call = current_time
-        end
-        str1 =        " %8.6fms"                        % [current_time - @tr_api_time_of_first_call]
-        str1 = str1 + " (previous occurred @: %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
-        str1 = str1 + "; elapsed since: '%8.6fms')"     % [time_since_previous_call]
-        RallyLogger.debug(self, "TestRail-API-call: #{func} @ " + str1)
-
-        @tr_api_retry_current ||= 0
-        case func
-        #---------------------##---------------------#
-        when 'get'
-          if args.length != 2
-            raise UnrecoverableException.new("On TestRail API call, expected '2' args, got '#{args.length}'", self)
-          end  
-          results = @testrail.send_get(uri)
-        #---------------------##---------------------#
-        when 'post'
-          if (args.length != 3)
-            raise UnrecoverableException.new("On TestRail API call, expected '3' args, got '#{args.length}'", self)
+        unique_key = SecureRandom.base64
+        @tr_api_retry_current ||= 0        
+        begin
+          current_time = Time.now.to_f
+          time_since_previous_call = current_time - @tr_api_time_of_previous_call
+          if @tr_api_time_of_first_call == -1.0
+            time_since_previous_call      = 0.0
+            @tr_api_time_of_first_call    = current_time
+            @tr_api_time_of_previous_call = current_time
           end
-          results = @testrail.send_post(uri, fields)
-        #---------------------##---------------------#
-        else
-          raise UnrecoverableException.new("TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
-        end
-      rescue Exception => ex
-        @tr_api_retry_current += 1
-        good_msg = 'TestRail API returned HTTP 429'
-        if (@tr_api_retry_current < @tr_api_retry_maximum) && ex.message.start_with?(good_msg)
-          RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}...")
-          @tr_api_time_of_previous_call = current_time
-          retry
-        else
+          str1 =        " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
+          str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
+          str1 = str1 + "  elap %8.6fms)" % [time_since_previous_call]
+          str1 = str1 + "  key %s"        % [unique_key]
+          RallyLogger.debug(self, "TestRail-API #{func}" + str1)
+
           case func
+          #---------------------##---------------------#
           when 'get'
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(arg1)':")
-          when 'post'
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1, arg2)'")
-            RallyLogger.warning(self, "\targ2: '#{fields})'")
-          else
-            @tr_api_retry_current = nil
-            raise UnrecoverableException.new("Internal Error: TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
-          end
-        end
-        RallyLogger.warning(self, "\targ1: '#{uri}'")
-        RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
-        auth_msg = 'TestRail API returned HTTP 401'
-        if ex.message.start_with?(auth_msg)
-          RallyLogger.warning(self, "\tusername: '#{@testrail.user}'")
-          RallyLogger.warning(self, "\tpassword: '********'")
-        end
-        RallyLogger.warning(self, "\ttime since previous API call: %8.6f"%[time_since_previous_call])
-        RallyLogger.warning(self, "\t@tr_api_retry_current='#{@tr_api_retry_current}'")
-        RallyLogger.warning(self, "\t@tr_api_retry_maximum='#{@tr_api_retry_maximum}'")
-        @tr_api_retry_current = nil
-        raise
-      else
-        @tr_api_time_of_previous_call = current_time
-        if @tr_api_retry_current > @tr_api_max_try_count
-          @tr_api_max_try_count = @tr_api_retry_current
-        end
-        @tr_api_retry_current = nil
-        return results
-      end
-#---------------------#
-#require 'byebug';byebug
-      def testrail_send_old(*args)
-        
-        func, uri, fields = *args
-        
-        current_time = Time.now.to_f
-        if @time_of_first_call == -1.0
-          @time_of_first_call      = current_time
-          time_since_previous_call = 0.0
-        else
-          time_since_previous_call = current_time - @time_of_previous_call
-        end
-        str1 =        " %8.6fms"                        % [current_time - @time_of_first_call]
-        str1 = str1 + " (previous occurred @: %8.6fms"  % [@time_of_previous_call - @time_of_first_call]
-        str1 = str1 + "; elapsed since: '%8.6fms')"     % [time_since_previous_call]
-        RallyLogger.debug(self, "TestRail-API-call: #{func} @ " + str1)
-
-        case func
-        #---------------------##---------------------#
-        when 'get'
-          if args.length != 2
-            raise UnrecoverableException.new("On TestRail API call, expected '2' args, got '#{args.length}'", self)
-          end  
-          begin
+            if args.length != 2
+              raise UnrecoverableException.new("On TestRail API call, expected '2' args, got '#{args.length}'", self)
+            end  
             results = @testrail.send_get(uri)
-          rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(arg1)':")
-            RallyLogger.warning(self, "\targ1: '#{uri}'")
-            RallyLogger.warning(self, "\tmsg : #{ex.message}")
-            RallyLogger.warning(self, "\ttime since last API call: %8.6f"%[time_since_previous_call])
-          end
-        #---------------------##---------------------#
-        when 'post'
-          if (args.length != 3)
-            raise UnrecoverableException.new("On TestRail API call, expected '3' args, got '#{args.length}'", self)
-          end
-          begin
+          #---------------------##---------------------#
+          when 'post'
+            if (args.length != 3)
+              raise UnrecoverableException.new("On TestRail API call, expected '3' args, got '#{args.length}'", self)
+            end
             results = @testrail.send_post(uri, fields)
-          rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1, arg2)'")
-            RallyLogger.warning(self, "\targ1: '#{uri}'")
-            RallyLogger.warning(self, "\targ2: '#{fields})'")
-            RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
+          #---------------------##---------------------#
+          else
+            raise UnrecoverableException.new("TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
           end
-        #---------------------##---------------------#
+        rescue Exception => ex
+          @tr_api_retry_current += 1
+          good_msg = 'TestRail API returned HTTP 429'
+          if (@tr_api_retry_current < @tr_api_retry_maximum) && ex.message.start_with?(good_msg)
+            RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}; key='#{unique_key}'...")
+            @tr_api_time_of_previous_call = current_time
+            retry
+          else
+            case func
+            when 'get'
+              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(arg1)':")
+            when 'post'
+              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1, arg2)'")
+              RallyLogger.warning(self, "\targ2: '#{fields})'")
+            else
+              @tr_api_retry_current = nil
+              raise UnrecoverableException.new("Internal Error: TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
+            end
+          end
+          RallyLogger.warning(self, "\targ1: '#{uri}'")
+          RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
+          auth_msg = 'TestRail API returned HTTP 401'
+          if ex.message.start_with?(auth_msg)
+            RallyLogger.warning(self, "\tusername: '#{@testrail.user}'")
+            RallyLogger.warning(self, "\tpassword: '********'")
+          end
+          RallyLogger.warning(self, "\ttime since previous API call: %8.6f"%[time_since_previous_call])
+          RallyLogger.warning(self, "\t@tr_api_retry_current='#{@tr_api_retry_current}'")
+          RallyLogger.warning(self, "\t@tr_api_retry_maximum='#{@tr_api_retry_maximum}'")
+          @tr_api_retry_current = nil
+          raise
         else
-          raise UnrecoverableException.new("TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
+          @tr_api_time_of_previous_call = current_time
+          if @tr_api_retry_current > @tr_api_max_try_count
+            @tr_api_max_try_count = @tr_api_retry_current
+          end
         end
-#require 'byebug';byebug
-        @time_of_previous_call = current_time
+        @tr_api_retry_current = nil
         return results
       end
 #---------------------#
