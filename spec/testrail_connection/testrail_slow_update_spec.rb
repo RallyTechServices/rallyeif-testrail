@@ -41,6 +41,12 @@ describe "When trying to update TestRail items" do
     @items_to_remove_testsection.each{ |item| @connection_testsection.delete(item)}
   end
   
+#  after(:all) do
+#    @connection_testcase.disconnect()
+#    @connection_testsuite.disconnect()
+#    @connection_testsection.disconnect()
+#  end
+  
   it "(1), should update a new test case with an externalid" do
     # 1 - Create a Suite
     suite,suite_id = create_testrail_artifact(@connection_testsuite, nil)
