@@ -127,7 +127,7 @@ module RallyEIF
             if this_tc._ref == rally_test_case._ref
               RallyLogger.debug(self, "   TestCase is already in TestSet (@ #{ndx+1})")
               found_tc = true
-              break  # quit searching - we found it so exit loop
+              break  # quit searching - we found it so break out of loop
             end
           end
 
@@ -161,7 +161,7 @@ module RallyEIF
           RallyLogger.debug(self, "Found '#{run_ids.length}' run(s); ID's: '#{run_ids}'")
           
           runs.each_with_index do |run,run_ndx|
-            RallyLogger.debug(self, "Processing 'run #{run_ndx+1}-of-#{runs.length}'; plan_id='#{run['plan_id']}'")
+            RallyLogger.debug(self, "Begin processing 'run #{run_ndx+1}-of-#{runs.length}'; plan_id='#{run['plan_id']}'")
             #-----
             # For each run:
             #   1) Get TestRail TestPlan ID for this TestRun
@@ -234,7 +234,7 @@ module RallyEIF
                   add_testcase_to_test_set(rally_testcase,rally_test_set)
                 end
               else
-                RallyLogger.warning(self, "TestRail testcase '#{testcase['id']}' not connected to a Rally testcase")
+                RallyLogger.warning(self, "TestRail testcase 'T#{testcase['id']}' not connected to a Rally testcase")
               end
             end
           end # of 'runs.each do |run|'
