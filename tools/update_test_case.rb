@@ -1,8 +1,4 @@
 #!/usr/bin/env ruby
-#require 'debugger'
-#debugger
-#require 'pry'
-#binding.pry
 
 require './testrail-api-master/ruby/testrail.rb'
 require 'pp'
@@ -34,7 +30,6 @@ pp this_CASE
 int_work_item = '{"custom_rallyformattedid": "DE1234"}' # work way
 int_work_item = {:custom_rallyformattedid => 'DE1234',}  # right way
 print "Updating case '#{case_id}' with '#{int_work_item}'\n"
-require 'debugger';debugger
 updated_item = @tr_con.send_post("update_case/#{case_id}", int_work_item)
 
 #[the end]#
