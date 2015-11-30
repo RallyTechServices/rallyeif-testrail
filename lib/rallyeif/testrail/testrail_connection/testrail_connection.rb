@@ -20,6 +20,7 @@ module RallyEIF
       attr_reader   :rally_story_field_for_plan_id
       attr_reader   :run_days_to_search, :run_days_as_unixtime
       attr_accessor :project,  :section_id
+      attr_accessor :time_of_last_api_call
       
       #
       # Global info that will be obtained from the TestRail system.
@@ -27,12 +28,33 @@ module RallyEIF
       @testrail           = '' # The connecton packet used to make request.
       @tr_project         = {} # Information about project in config file.
       @all_suites         = {} # All suites in the project.
+      @all_plans          = {} # All plans in the project (to be added... limit by PlanID's)
       @all_sections       = {} # All sections in the project
       @tr_cust_fields_tc  = {} # Hash of custom fields on test case.
       @tr_cust_fields_tcr = {} # Hash of custom fields on test case result.
       @tr_fields_tc       = {} # Hash of standard fields on test case.
       @tr_fields_tcr      = {} # Hash of standard fields on test case result.
       @tr_user_info       = {} # TestRail information about user in config file.
+        
+      @tr_api_time_of_first_call    = -1.0  # for measuring fequency of TestRail API calls
+      @tr_api_time_of_previous_call = -1.0  #
+      @tr_api_time_max_elapsed      = +9.0  # max time that occurred between API calls
+      @tr_api_time_min_elapsed      = -1.0  #
+      
+      @tr_api_retry_maximum         = 3   # How many retries to do for failed API calls
+      @tr_api_retry_current         = 0   #
+      @tr_api_total_retries         = 0   # Keep a total for the run  
+      @tr_api_max_try_count         = 0   # Highest number of tries on a call
+
+      attr_accessor :tr_api_time_of_first_call
+      attr_accessor :tr_api_time_of_previous_call
+      attr_accessor :tr_api_time_max_elapsed
+      attr_accessor :tr_api_time_min_elapsed
+      
+      attr_accessor :tr_api_retry_maximum
+      attr_accessor :tr_api_retry_current
+      attr_accessor :tr_api_total_retries  
+      attr_accessor :tr_api_max_try_count
       
       def initialize(config=nil)
         super()
@@ -50,6 +72,7 @@ module RallyEIF
 
         @section_id         = nil
         @cfg_suite_ids      = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "SuiteIDs", false)
+        @cfg_plan_ids       = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "PlanIDs", false) # (to be added... limit by PlanID's)
 
         # Determine how far back in time to look for updates on TR TestCases
         @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false).to_f
@@ -101,27 +124,29 @@ module RallyEIF
         end
         RallyLogger.debug(self, "********************************************************")
         
+        @tr_api_time_of_first_call    = -1.0 # for measuring fequency of TestRail API calls
+        @tr_api_time_of_previous_call = -1.0
+        @tr_api_retry_maximum         = 3
+        @tr_api_retry_current         = 0
+        @tr_api_max_try_count         = 0
+        
         #
         # Set up a connection packet
         #
-        @testrail          = ::TestRail::APIClient.new(@url)
-        @testrail.user     = @user
-        @testrail.password = @password
-        
+        begin
+          @testrail          = ::TestRail::APIClient.new(@url)
+          @testrail.user     = @user
+          @testrail.password = @password
+        rescue
+          raise UnrecoverableException.new("Failed to create TestRail structure.", self)
+        end
 
         #
         # PROJECTS:  Build a hash of TestRail projects
         #            (not necessary to have them all, but we have to find ours anyway)
         #
         uri = 'get_projects'
-        begin 
-          all_projects = @testrail.send_get(uri)
-        rescue StandardError => stderr
-          RallyLogger.error(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-          RallyLogger.error(self, "\tMessage: #{stderr.message}")
-          raise UnrecoverableException.copy(stderr, self)
-        end
-        
+        all_projects = testrail_send('get', uri)
         if all_projects.length < 1
           raise UnrecoverableException.new("Could not find any projects in TestRail.", self)
         end
@@ -182,6 +207,18 @@ module RallyEIF
         end
         RallyLogger.debug(self, "Future searches will #{mesg}: '#{@all_suite_ids}'")
 
+        # Handle config file: <PlanIDs>1,2,3,4</PlanIDs>
+        # (to be added... limit by PlanID's)
+        #
+        # ...code here...
+        #   I beleive the code would be something like:
+        #       - GET index.php?/api/v2/get_plans/:project_id
+        #       - then iterate thru all the plans:
+        #           - then iterate thru all the entries in a plan: (maybe be only one?)
+        #               - then iterate thru all the runs in an entry:
+        #                   - if the suite_id of this run is in the list '@all_suite_ids', then keep it
+        #                     otherwise throw it away
+        #       - exit with an updated list of suites
 
         # Build section info...
         @tr_section_ids = Array.new
@@ -197,7 +234,8 @@ module RallyEIF
         when 'testcase'
           uri = 'get_case_fields'
           begin
-            cust_fields = @testrail.send_get(uri)
+            uri = 'get_case_fields'
+            cust_fields = testrail_send('get', uri)
           rescue Exception => ex
             RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
             RallyLogger.warning(self, "\tMessage: #{ex.message}")
@@ -226,9 +264,9 @@ module RallyEIF
         when 'testsection'  # No custom-fields on this object.
 
         when 'testresult'
-          uri = 'get_result_fields'
-          begin  
-            cust_fields = @testrail.send_get(uri)
+          begin
+            uri = 'get_result_fields'
+            cust_fields = testrail_send('get', uri)
           rescue Exception => ex
             RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
             RallyLogger.warning(self, "\tMessage: #{ex.message}")
@@ -303,7 +341,9 @@ module RallyEIF
         #
         uri = "get_user_by_email&email=#{@user}"
         begin
-          @tr_user_info = @testrail.send_get(uri)
+          uri = "get_user_by_email&email=#{@user}"
+          @tr_user_info = testrail_send('get', uri)
+          RallyLogger.debug(self, "User information retrieve successfully for '#{@user}'")
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
           RallyLogger.warning(self, "\tMessage: #{ex.message}")
@@ -323,7 +363,10 @@ module RallyEIF
         uri = "add_plan_entry/#{testplan['id']}"
         extra_fields = { 'suite_id' => testrun['suite_id'], 'runs' => [testrun] }
         begin
-          new_plan_entry = @testrail.send_post(uri, extra_fields)
+          uri = "add_plan_entry/#{testplan['id']}"
+          extra_fields = { 'suite_id' => testrun['suite_id'], 'runs' => [testrun] }
+          new_plan_entry = testrail_send('post', uri, extra_fields)
+          RallyLogger.debug(self, "New plan entry: '#{new_plan_entry}'")
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
           RallyLogger.warning(self, "\targ1: '#{uri}'")
@@ -363,15 +406,7 @@ module RallyEIF
             section_id = int_work_item['section_id']
             RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type.to_s.downcase}' in Section '#{section_id}'")
             uri = "add_case/#{section_id}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_tcase
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_tcase.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testcase'; Section id='#{section_id}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
             gui_id = 'C' + new_item['id'].to_s # How it appears in the GUI
             extra_info = ''
             #RallyLogger.debug(self,"We just created TestRail '#{@artifact_type}' object #{gui_id}")
@@ -380,30 +415,14 @@ module RallyEIF
             suite_id = int_work_item['suite_id']
             RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type.to_s.downcase}' in Suite 'S#{suite_id}'")
             uri = "add_run/#{@tr_project['id']}&suite_id=#{suite_id}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_trun
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_trun.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testrun'; Project id='#{tr_project['id']}'; Suite id='#{suite_id}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
             gui_id = 'R' + new_item['id'].to_s # How it appears in the GUI
             extra_info = ''
             
           when 'testplan'
             RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type.to_s.downcase}'")
             uri = "add_plan/#{@tr_project['id']}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_tplan
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_tplan.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testplan' in Project id='#{tr_project['id']}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
             gui_id = 'R' + new_item['id'].to_s # How it appears in the GUI
             
             # Build a string of info about entries created (for log file)
@@ -436,15 +455,7 @@ module RallyEIF
           when 'testsuite'
             RallyLogger.debug(self,"Preparing to create a TestRail 'testsuite'")
             uri = "add_suite/#{@tr_project['id']}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_tsuite
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_tsuite.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testsuite' in Project id='#{tr_project['id']}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
                   # Returns:
                   #       {"id"=>97,
                   #        "name"=>"Suite '1' of '5'",
@@ -461,15 +472,8 @@ module RallyEIF
           when 'testsection'
             RallyLogger.debug(self,"Preparing to create a TestRail 'testsection'")
             uri = "add_section/#{@tr_project['id']}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_tsection
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_tsection.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testsection' in Project id='#{tr_project['id']}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
+                  # Returns:
             gui_id = new_item['id'].to_s # How it appears in the GUI
             extra_info = ''
             
@@ -478,15 +482,7 @@ module RallyEIF
             case_id = int_work_item['case_id'] || case_id
             RallyLogger.debug(self,"Preparing to create a TestRail '#{@artifact_type.to_s.downcase}' for run_id='R#{run_id}', case_id='T#{case_id}'")
             uri = "add_result_for_case/#{run_id}/#{case_id}"
-            begin
-              new_item = @testrail.send_post(uri, int_work_item)
-            rescue Exception => ex_tresult
-              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-              RallyLogger.warning(self, "\targ1: '#{uri}'")
-              RallyLogger.warning(self, "\targ2: '#{int_work_item}'")
-              RallyLogger.warning(self, "\tmsg : '#{ex_tresult.message}'")
-              raise RecoverableException.new("\tFailed to create a 'testresult' in Run id='#{run_id}', Case id='#{case_id}'", self)
-            end
+            new_item = testrail_send('post', uri, int_work_item)
             gui_id = "(id='#{new_item['id']}' test_id='#{new_item['test_id']}')"
             extra_info = ''
             
@@ -512,23 +508,23 @@ module RallyEIF
           case @artifact_type.to_s.downcase
           when 'testcase'
             uri = "delete_case/#{item['id']}"
-            retval = @testrail.send_post(uri,nil)
+            retval = testrail_send('post', uri,nil)
           when 'testrun'
             uri = "delete_run/#{item['id']}"
-            retval = @testrail.send_post(uri,nil)
+            retval = testrail_send('post', uri,nil)
           when 'testplan'
             uri = "delete_plan/#{item['id']}"
-            retval = @testrail.send_post(uri,nil)
+            retval = testrail_send('post', uri,nil)
           when 'testsuite'
             uri = "delete_suite/#{item['id']}"
-            retval = @testrail.send_post(uri,nil)
+            retval = testrail_send('post', uri,nil)
           when 'testsection'
             # Don't try to delete it unless it exist.
             get_all_sections().each do |next_section|
               uri = nil
               if next_section['id'] == item['id']
                 uri = "delete_section/#{item['id']}"
-                retval = @testrail.send_post(uri,nil)
+                retval = testrail_send('post', uri,nil)
                 break
               end
             end
@@ -552,6 +548,7 @@ module RallyEIF
 #---------------------#
       def disconnect()
         RallyLogger.info(self,"Would disconnect at this point if we needed to")
+        RallyLogger.debugger(self,"@tr_api_max_try_count='#{@tr_api_max_try_count}'")
       end
 #---------------------#
       def field_exists? (field_name)
@@ -610,11 +607,11 @@ module RallyEIF
 
           when 'testcase'
             uri = "get_case/#{item['id']}"
-            found_item = @testrail.send_get(uri)
+            found_item = testrail_send('get', uri)
           
           when 'test'
             uri = "get_test/#{item['id']}"
-            found_item = @testrail.send_get(uri)
+            found_item = testrail_send('get', uri)
                       
           when 'testrun'
             raise UnrecoverableException.new('Unimplemented logic: find on "testrun"...', self)
@@ -640,7 +637,8 @@ module RallyEIF
         when 'testcase'
           uri = "get_cases/#{@tr_project['id']}"
           begin
-            artifact_array = @testrail.send_get(uri)
+            uri = "get_cases/#{@tr_project['id']}"
+            artifact_array = testrail_send('get', uri)
           rescue Exception => ex
             RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':\n")
             RallyLogger.warning(self, "\tMessage: #{ex.message}")
@@ -732,12 +730,8 @@ module RallyEIF
 
         @all_suites.each do |next_suite|
           begin
-            #uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}&created_after=#{@run_days_as_unixtime}"
-            uri_call  = 'get_cases'
-            uri_proj  = "/#{@tr_project['id']}"
-            uri_suite = "&suite_id=#{next_suite['id']}"
-            uri = uri_call + uri_proj + uri_suite + uri_date
-            returned_artifacts = @testrail.send_get(uri)
+            uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
+            returned_artifacts = testrail_send('get', uri)
             RallyLogger.debug(self, "Found '#{returned_artifacts.length}' testcases in suite id '#{next_suite['id']}'")
             kept,rejected = filter_out_already_connected(returned_artifacts)
             RallyLogger.debug(self, "Filtered out '#{rejected.length}' of those because they are 'already connected'")
@@ -756,7 +750,7 @@ module RallyEIF
         uri = "get_tests/#{run_id}"
         RallyLogger.info(self, "Doing send_get '#{uri}'")
         begin
-          tests = @testrail.send_get(uri)
+          tests = testrail_send('get', uri)
         rescue Exception => ex
           RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
           RallyLogger.warning(self, "\tMessage: #{ex.message}")
@@ -768,18 +762,12 @@ module RallyEIF
       # find and populated related data for plans
       def find_test_plans()
         begin
-          uri1_call = 'get_plans'
-          uri1_proj = "/#{@tr_project['id']}"
-
-          # Should we enable this?
-          uri1_date = ''  #  "&created_after=#{@run_days_as_unixtime}"
-
-          uri1 = uri1_call + uri1_proj + uri1_date
-          plan_shells = @testrail.send_get(uri1)
+          uri1 = "get_plans/#{@tr_project['id']}"
+          plan_shells = testrail_send('get', uri1)
           plans = []
           plan_shells.each do |plan_shell|
             uri2 = "get_plan/#{plan_shell['id']}"
-            plan = @testrail.send_get(uri2)
+            plan = testrail_send('get', uri2)
             runs = []
             tests = []
             run_ids = []
@@ -789,11 +777,11 @@ module RallyEIF
               run_shells = entry['runs']
               run_shells.each do |run_shell|
                 uri3 = "get_run/#{run_shell['id']}"
-                run = @testrail.send_get(uri3)
+                run = testrail_send('get', uri3)
                 runs.push(run)
                 
                 uri4 = "get_tests/#{run_shell['id']}"
-                test = @testrail.send_get(uri4)
+                test = testrail_send('get', uri4)
                 tests.push(test)
                 
                 run_ids.push(run_shell['id'])
@@ -815,16 +803,16 @@ module RallyEIF
         # have to iterate over the runs
         runs, run_ids = find_test_runs()
         #RallyLogger.info(self, "Find new TestRail '#{@artifact_type}' objects for run_id(s) '#{run_ids}'")
-        RallyLogger.info(self, "Find new TestRail 'testresult' objects, for run_id(s) '#{run_ids}', created after: '#{Time.at(@run_days_as_unixtime)}'")
+        RallyLogger.info(self, "Find new TestRail 'testresult' objects created after '#{Time.at(@run_days_as_unixtime)}' for these '#{run_ids.length}' run_id(s): #{run_ids}")
 
         test_results = []
         uri_call = 'get_results_for_run'
         uri_date = "&created_after=#{@run_days_as_unixtime}"
         runs.each do |run|
           begin
-            uri_runid = "/#{run['id']}"
-            uri = uri_call + uri_runid + uri_date
-            results = @testrail.send_get(uri)
+            run_id = run['id']
+            uri = "get_results_for_run/#{run_id}"
+            results = testrail_send('get', uri)
             filtered_results,rejected_results = filter_out_already_connected(results)
             test_results = test_results.concat(filtered_results)
             # matching candidates are filtered below...
@@ -887,7 +875,7 @@ module RallyEIF
         
 #        begin
 #          uri = "get_runs/#{@tr_project['id']}"
-#          orphan_runs = @testrail.send_get(uri)
+#          orphan_runs = testrail_send('get', uri)
 #          runs = orphan_runs.concat(runs)
 #        rescue Exception => ex
 #          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
@@ -931,12 +919,8 @@ module RallyEIF
         
         @all_suites.each do |next_suite|
           begin
-            uri_call  = 'get_cases/'
-            uri_proj  = "/#{@tr_project['id']}"
-            uri_suite = "&suite_id=#{next_suite['id']}"
-            uri_date  = "&updated_after=#{unix_time}"
-            uri = uri_call + uri_proj + uri_suite + uri_date
-            result_array = @testrail.send_get(uri)
+            uri = "get_cases/#{@tr_project['id']}&suite_id=#{next_suite['id']}&updated_after=#{unix_time}"
+            result_array = testrail_send('get', uri)
             # throw away those without extid
             result_array.each do |item|
               if item[cfsys(@external_id_field)] != nil
@@ -969,10 +953,10 @@ module RallyEIF
         @all_suites.each do |next_suite|
           uri = "get_sections/#{@tr_project['id']}&suite_id=#{next_suite['id']}"
           begin  
-            sections = @testrail.send_get(uri)
+            sections = testrail_send('get', uri)
           rescue Exception => ex
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-            RallyLogger.warning(self, "\tMessage: #{ex.message}")
+            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})'::")
+            RallyLogger.warning(self, "\t#{ex.message}")
           end
           @all_sections.push(sections)
         end
@@ -981,13 +965,7 @@ module RallyEIF
 #---------------------#
       def get_all_suites()
         uri = "get_suites/#{@tr_project['id']}"
-        begin
-          @all_suites = @testrail.send_get(uri)
-        rescue
-          RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(#{uri})':")
-          RallyLogger.warning(self, "\tMessage: #{ex.message}")
-          raise RecoverableException.new("Failed trying to get list of Suites for Project id='#{@tr_project['id']}'", self)
-        end
+        @all_suites = testrail_send('get', uri)
         return @all_suites
       end
 #---------------------#
@@ -995,7 +973,7 @@ module RallyEIF
 #RallyLogger.debug(self,"JPKdebug: #{@tr_project['id']}")
 #RallyLogger.debug(self,"JPKdebug: get_sections/#{@tr_project['id']}")
 #        begin
-#          returned_artifacts = @testrail.send_get("get_sections/#{@tr_project['id']}")
+#          returned_artifacts = testrail_send('get', "get_sections/#{@tr_project['id']}")
 #        rescue Exception => ex
 #          RallyLogger.warning(self, "Cannot find sections: #{ex.message}")
 #        end
@@ -1031,6 +1009,84 @@ module RallyEIF
 #---------------------#
       def pre_create(int_work_item)
         return int_work_item
+      end
+#---------------------#
+#require 'byebug';byebug
+      def testrail_send(*args)
+        
+        func, uri, fields = *args
+        unique_key = SecureRandom.base64
+        @tr_api_retry_current ||= 0        
+        begin
+          current_time = Time.now.to_f
+          time_since_previous_call = current_time - @tr_api_time_of_previous_call
+          if @tr_api_time_of_first_call == -1.0
+            time_since_previous_call      = 0.0
+            @tr_api_time_of_first_call    = current_time
+            @tr_api_time_of_previous_call = current_time
+          end
+          str1 =        " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
+          str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
+          str1 = str1 + "  elap %8.6fms)" % [time_since_previous_call]
+          str1 = str1 + "  key %s"        % [unique_key]
+          RallyLogger.debug(self, "TestRail-API #{func}" + str1)
+
+          case func
+          #---------------------##---------------------#
+          when 'get'
+            if args.length != 2
+              raise UnrecoverableException.new("On TestRail API call, expected '2' args, got '#{args.length}'", self)
+            end  
+            results = @testrail.send_get(uri)
+          #---------------------##---------------------#
+          when 'post'
+            if (args.length != 3)
+              raise UnrecoverableException.new("On TestRail API call, expected '3' args, got '#{args.length}'", self)
+            end
+            results = @testrail.send_post(uri, fields)
+          #---------------------##---------------------#
+          else
+            raise UnrecoverableException.new("TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
+          end
+        rescue Exception => ex
+          @tr_api_retry_current += 1
+          good_msg = 'TestRail API returned HTTP 429'
+          if (@tr_api_retry_current < @tr_api_retry_maximum) && ex.message.start_with?(good_msg)
+            RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}; key='#{unique_key}'...")
+            @tr_api_time_of_previous_call = current_time
+            retry
+          else
+            case func
+            when 'get'
+              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API 'send_get(arg1)':")
+            when 'post'
+              RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1, arg2)'")
+              RallyLogger.warning(self, "\targ2: '#{fields})'")
+            else
+              @tr_api_retry_current = nil
+              raise UnrecoverableException.new("Internal Error: TestRail API call must be either 'get' or 'post'; got '#{func}'", self)
+            end
+          end
+          RallyLogger.warning(self, "\targ1: '#{uri}'")
+          RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
+          auth_msg = 'TestRail API returned HTTP 401'
+          if ex.message.start_with?(auth_msg)
+            RallyLogger.warning(self, "\tusername: '#{@testrail.user}'")
+            RallyLogger.warning(self, "\tpassword: '********'")
+          end
+          RallyLogger.warning(self, "\ttime since previous API call: %8.6f"%[time_since_previous_call])
+          RallyLogger.warning(self, "\t@tr_api_retry_current='#{@tr_api_retry_current}'")
+          RallyLogger.warning(self, "\t@tr_api_retry_maximum='#{@tr_api_retry_maximum}'")
+          @tr_api_retry_current = nil
+          raise
+        else
+          @tr_api_time_of_previous_call = current_time
+          if @tr_api_retry_current > @tr_api_max_try_count
+            @tr_api_max_try_count = @tr_api_retry_current
+          end
+        end
+        @tr_api_retry_current = nil
+        return results
       end
 #---------------------#
       def update_external_id_fields(artifact, external_id, end_user_id, item_link)
@@ -1073,32 +1129,14 @@ module RallyEIF
           all_fields = artifact
           all_fields.merge!(new_fields)
           uri = "update_case/#{artifact['id']}"
-          begin
-            updated_item = @testrail.send_post(uri, all_fields)
-          rescue Exception => ex
-            RallyLogger.warning(self, "Problem updating TestRail '#{@artifact_type.to_s.downcase}'")
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-            RallyLogger.warning(self, "\targ1: '#{uri}'")
-            RallyLogger.warning(self, "\targ2: '#{all_fields}'")
-            RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
-            raise RecoverableException.copy(ex, self)
-          end
-          
+          updated_item = testrail_send('post', uri, all_fields)
+
         when 'testrun'
           all_fields = artifact
           all_fields.merge!(new_fields)
           uri = "update_run/#{artifact['id']}"
-          begin
-            updated_item = @testrail.send_post(uri, all_fields)
-          rescue Exception => ex
-            RallyLogger.warning(self, "Problem updating TestRail '#{@artifact_type.to_s.downcase}'")
-            RallyLogger.warning(self, "EXCEPTION occurred on TestRail API during 'send_post(arg1,arg2)'")
-            RallyLogger.warning(self, "\targ1: '#{uri}'")
-            RallyLogger.warning(self, "\targ2: '#{all_fields}'")
-            RallyLogger.warning(self, "\tmsg : '#{ex.message}'")
-            raise RecoverableException.copy(ex, self)
-          end
-                    
+          updated_item = testrail_send('post', uri, all_fields)
+          
         when 'testresult'
           raise UnrecoverableException.new('Unimplemented logic: update_internal on "testresult"...', self)
 
