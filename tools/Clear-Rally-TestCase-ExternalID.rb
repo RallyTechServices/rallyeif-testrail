@@ -10,7 +10,6 @@ $my_rally_username      = 'paul@foo.com'
 $my_rally_password      = 'MyPassword!'
 $my_rally_workspace     = 'Integrations'
 $my_rally_project       = 'MyProject'
-$my_rally_version       = 'v2.0'
 
 @stop_after             = 100
 
@@ -24,11 +23,10 @@ require 'rally_api'
 # Error exit codes.  Failed when...
 #
 OK_EXIT_STOPAFTER   = 0     # No error, just exit
-ERR_EXIT_GETPROJS   = -1    # ... getting information about all TestRail projects.
-ERR_EXIT_RALLYFIND  = -2    # ... querying Rally for TestCase.
-ERR_EXIT_RALLY_UPD  = -3    # ... trying to update Rally TestCase.
-ERR_EXIT_ARGS2MANY  = -4    # Too many command line args.
-ERR_EXIT_ARGINVALID = -5    # Invalid command line arg.
+ERR_EXIT_RALLYFIND  = -1    # ... querying Rally for TestCase.
+ERR_EXIT_RALLY_UPD  = -2    # ... trying to update Rally TestCase.
+ERR_EXIT_ARGS2MANY  = -3    # Too many command line args.
+ERR_EXIT_ARGINVALID = -4    # Invalid command line arg.
 
 
 # ------------------------------------------------------------------------------
@@ -70,6 +68,8 @@ def connect_to_rally()
     # removing trailing '/' if present and add '/slm' if needed
     $my_rally_base_url = $my_rally_base_url.chomp('/')
     $my_rally_base_url << '/slm' if !$my_rally_base_url.end_with?('/slm')
+
+    $my_rally_version       = 'v2.0'
 
     print "\n--------------------------------------------------------\n"
     print "02) Connecting to Rally at:\n"
