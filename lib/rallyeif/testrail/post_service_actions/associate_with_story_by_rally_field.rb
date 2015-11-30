@@ -18,11 +18,11 @@ module RallyEIF
             raise UnrecoverableException.new(msg, self)
           end
           
-          if (other_conn.rally_story_field_for_plan_id.nil?)
-            msg = "AssociateWithStoryByRallyField requires that the TestRailConnection section have an entry for <RallyStoryFieldForPlanID>"
-            raise UnrecoverableException.new(msg, self)
-          end
-        end
+          #if (other_conn.rally_story_field_for_plan_id.nil?)
+          #  msg = "AssociateWithStoryByRallyField requires that the TestRailConnection section have an entry for <RallyStoryFieldForPlanID>"
+          #  raise UnrecoverableException.new(msg, self)
+          #end
+        end # of 'def setup(action_config, rally_conn, other_conn)'
 
         def post_copy_to_rally_action(testcase_list)
           process_parents(testcase_list)
@@ -72,9 +72,10 @@ module RallyEIF
   
           RallyLogger.info(self, "  Found '#{query_result.total_result_count}' Stories in Rally")
           return query_result
-        end
+        end # of 'def find_rally_stories_with_plan_ids()'
         
         def process_parents(tr_testcase_list)
+          #TODO -- change this to Test Sets to Projects and Iterations!
           RallyLogger.debug(self, "Running post process to associate test cases to stories in Rally...")
           # test plans will have a story FormattedID in the name to indicate they go to the story
           plans = @other_connection.find_test_plans()
@@ -93,8 +94,7 @@ module RallyEIF
           stories.each do |story|
             plan = plan_hash["R#{story[plan_id_field_on_stories]}"] || plan_hash["#{story[plan_id_field_on_stories]}"]
             if ( !plan.nil?)
-              #RallyLogger.debug(self, "Found test plan #{plan}, #{plan.keys}")
-              RallyLogger.debug(self, "Found test plan '#{plan['name']}'")
+              RallyLogger.debug(self, "Found test plan '#{plan['name']}' (R#{plan['id']})")
               
               plan['tests'].flatten.each do |test|
                 case_parents[test['case_id']] = story
@@ -116,14 +116,14 @@ module RallyEIF
               RallyLogger.debug(self, "Linking Rally Test Case '#{rally_testcase['FormattedID']}' to Story '#{story['FormattedID']}'")
               @rally_connection.update(rally_testcase, { "WorkProduct" => story })
             else
-              RallyLogger.debug(self, "There is not a Rally Test Case for Test Rail Test Case '#{case_id}"'')
+              RallyLogger.debug(self, "There is not a Rally Test Case for Test Rail Test Case '#{case_id}'")
             end
           end
           RallyLogger.debug(self, "Completed running post process to associate test cases to stories in Rally.")
-        end
+        end # of 'def process_parents(tr_testcase_list)'
 
-      end
+      end # of 'class AssociateWithStoryByRallyField < PostServiceAction'
 
-    end
-  end
-end
+    end # of 'module PostServiceActions'
+  end # of 'module WRK'
+end # of 'module RallyEIF'

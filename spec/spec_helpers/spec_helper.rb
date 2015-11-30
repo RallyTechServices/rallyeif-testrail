@@ -128,17 +128,33 @@ module YetiTestUtils
       return [item, fields[:Name]]
     end
 
-    #def rally_connect(config_file)
-    #  rally_connection = read_config(config_file)
-    #  rally_connection.connect()
-    #  return rally_connection
-    #end
+    def rally_connect(config_file)
+      rally_connection = read_config(config_file)
+      rally_connection.connect()
+      return rally_connection
+    end
+    
+    def rally_delete(item)
+      item.delete
+    end
     
     def read_config(config_file)
       #root = XMLUtils::strip_empty_text_nodes(YetiTestUtils::load_xml(config_file).root)
       root = YetiTestUtils::load_xml(config_file).root
       RallyEIF::WRK::RallyConnection.new(root)
     end
+    
+    def rally_tr_connect(config_file)
+      rally_connection = read_tr_config(config_file)
+      rally_connection.connect()
+      return rally_connection
+    end
+    
+    def read_tr_config(config_file)
+      root = YetiTestUtils::load_xml(config_file).root
+      RallyEIF::WRK::RallyTestResultConnection.new(root)
+    end
+
   end
 
 end

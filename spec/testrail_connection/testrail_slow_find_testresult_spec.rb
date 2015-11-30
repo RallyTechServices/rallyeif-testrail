@@ -14,6 +14,9 @@ describe "When trying to find TestRail test case results" do
 
   before(:each) do
     
+    # Make a "TestCase" connection.
+    #     (already defined in TestRailSpecHelper::TESTRAIL_STATIC_CONFIG)
+    
     # Make a "TestResult" connection.
     config_testresult = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
@@ -32,7 +35,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Plan" connection.
+    # Make a "TestPlan" connection.
     config_testplan = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -41,7 +44,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
     
-    # Make a "Test Suite" connection.
+    # Make a "TestSuite" connection.
     config_testsuite = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -50,7 +53,7 @@ describe "When trying to find TestRail test case results" do
         "replace",                                  #5 ACTION  - [before, after, replace, delete]
         "ArtifactType")                             #6 REFTAG  - Existing tag in SECTION
 
-    # Make a "Test Section" connection.
+    # Make a "TestSection" connection.
     config_testsection = YetiTestUtils::modify_config_data(
         TestRailSpecHelper::TESTRAIL_STATIC_CONFIG, #1 CONFIG  - The config file to be augmented
         "TestRailConnection",                       #2 SECTION - XML element of CONFIG to be augmented
@@ -67,6 +70,7 @@ describe "When trying to find TestRail test case results" do
     @connection_testsuite   = testrail_connect(config_testsuite)
     @connection_testsection = testrail_connect(config_testsection)
     
+
     @items_to_remove_testcase     = []
     @items_to_remove_testresult   = []
     @items_to_remove_testrun      = []
@@ -112,12 +116,16 @@ describe "When trying to find TestRail test case results" do
                                                             'case_ids'   => [testcase_id]
                                                        }]
                                   }]
-                    }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
     # 6 - Create a TestResult
-    extra_fields = { 'run_id' => testplan['entries'][0]['runs'][0]['id'], 'case_id' => testcase['id'] }
+    extra_fields = { 
+      'run_id'     => testplan['entries'][0]['runs'][0]['id'], 
+      'case_id'    => testcase['id'],
+      'section_id' => section['id']
+    }
     testresult,testresult_id = create_testrail_artifact(@connection_testresult, extra_fields)
     @items_to_remove_testresult.push(testresult)
     
@@ -161,7 +169,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase2_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
     
@@ -211,7 +219,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
@@ -253,7 +261,7 @@ describe "When trying to find TestRail test case results" do
                                     'include_all' => false,
                                     'case_ids'    => [testcase_id]}
                                  ]
-                   }
+    }
     testplan,testplan_id = create_testrail_artifact(@connection_testplan, extra_fields)
     @items_to_remove_testplan.push(testplan)
 
@@ -277,6 +285,15 @@ describe "When trying to find TestRail test case results" do
 
     expect{ @connection_testresult.find_updates(time) }.to raise_error(/Not available for "testresult"/)
     
+  end
+  
+  it "(6), should raise an exception when trying to find update on a test run" do
+      
+    # 1 - Find all 'new' Runs (not supported by the code)
+    time = (Time.now() - 600).utc
+
+    expect{ @connection_testrun.find_updates(time) }.to raise_error(/Not available for "testrun"/)
+  
   end
   
 end

@@ -32,6 +32,7 @@ module TestRailSpecHelper
         <ExternalIDField>#{TestConfig::TR_EXTERNAL_ID_FIELD}</ExternalIDField>
         <ArtifactType>#{TestConfig::TR_ARTIFACT_TYPE}</ArtifactType>
         <Project>#{TestConfig::TR_PROJECT}</Project>
+        <RunDaysToSearch>8.8</RunDaysToSearch>
       </TestRailConnection>
     </config>"
 
@@ -127,6 +128,20 @@ module TestRailSpecHelper
         <Project>#{TestConfig::TR_PROJECT}</Project>
       </TestRailConnection>
     </config>"
+  
+  RALLY_HIERARCHICAL_CONFIG = "
+  <config>
+    <RallyTestResultConnection>
+        <Url>#{TestConfig::RALLY_URL}</Url>
+        <WorkspaceName>#{TestConfig::RALLY_WORKSPACE}</WorkspaceName>
+        <Projects>
+            <Project>#{TestConfig::RALLY_PROJECT_HIERARCHICAL_PARENT}</Project>
+        </Projects>
+        <User>#{TestConfig::RALLY_USER}</User>
+        <Password>#{TestConfig::RALLY_PASSWORD}</Password>
+        <ArtifactType>TestCaseResult</ArtifactType>
+    </RallyTestResultConnection>
+  </config>"
       
   def testrail_connect(config_file)
     root = YetiTestUtils::load_xml(config_file).root
