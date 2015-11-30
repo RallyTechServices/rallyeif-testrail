@@ -107,7 +107,7 @@ end
 #
 def get_all_testcases()
     print "\n--------------------------------------------------------\n"
-    print "03) Find all Rally TestSets with no Owner...\n"
+    print "03) Find all Rally TestCases with no Owner...\n"
     q                       = RallyAPI::RallyQuery.new()
     q.type                  = 'TestCase'
     q.fetch                 = 'Name,ObjectID,FormattedID,Owner,CreationDate'
