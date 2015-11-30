@@ -17,8 +17,7 @@ $my_rally_username      = 'paul@foo.com'
 $my_rally_password      = 'MyPassword!'
 $my_rally_workspace     = 'Integrations'
 $my_rally_project       = 'MyProject'
-
-@stop_after             = 1 # Delete this many, then stop (fail safe).
+$my_stop_after          = 1 # Delete this many, then stop (fail safe).
 
 
 # ------------------------------------------------------------------------------
@@ -164,8 +163,8 @@ else
 	                exit ERR_EXIT_RALLY_UPD
 	            end
 	        end
-	        if ndx_ts+1 >= @stop_after
-	            print "\n\n\tNOTE: Script variable '@stop_after' is set to '#{@stop_after}'; exiting...\n"
+	        if ndx_ts+1 >= $my_stop_after
+	            print "\n\n\tNOTE: Script variable '$my_stop_after' is set to '#{$my_stop_after}'; exiting...\n"
 	            exit OK_EXIT_STOPAFTER
 	        end
 	    end
