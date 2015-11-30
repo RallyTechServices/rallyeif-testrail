@@ -1028,9 +1028,10 @@ module RallyEIF
             @tr_api_time_of_first_call    = current_time
             @tr_api_time_of_previous_call = current_time
           end
-          str1 =        " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
-          str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
-          str1 = str1 + "  elap %8.6fms)" % [time_since_previous_call]
+          str1 = ''
+          #str1 = str1 + " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
+          #str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
+          str1 = str1 + " (%8.6fms since previous)" % [time_since_previous_call]
           #str1 = str1 + "  key %s"        % [unique_key]
           RallyLogger.debug(self, "TestRail-API #{func}" + str1)
 
