@@ -20,4 +20,8 @@ tools/MyVars.rb
 tools/create-1pr-*
 test_configuration_helper.rb
 For-JohnM*
+<<<<<<< HEAD
+=======
+spec.failures.txt
+>>>>>>> 9b526d74e43c8a297cd3da5c33b7d236c059cd51
 Debug01

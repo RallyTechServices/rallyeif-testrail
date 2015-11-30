@@ -41,11 +41,12 @@ describe "When trying to update TestRail items" do
     @items_to_remove_testsection.each{ |item| @connection_testsection.delete(item)}
   end
   
-#  after(:all) do
-#    @connection_testcase.disconnect()
-#    @connection_testsuite.disconnect()
-#    @connection_testsection.disconnect()
-#  end
+  # Get custom field system name
+  def cfsys(fn)
+    # Given a custom field name like "RallyObjectID",
+    # Return the systen name of 'custom_rallyobjectid'
+    return 'custom_' + fn.to_s.downcase
+  end
   
   it "(1), should update a new test case with an externalid" do
     # 1 - Create a Suite
@@ -67,7 +68,7 @@ describe "When trying to update TestRail items" do
     
     # 5 - Verify it was placed properly
     found_item = @connection_testcase.find(testcase)
-    sys_name = 'custom_' + @connection_testcase.external_id_field.to_s.downcase
+    sys_name = cfsys(@connection_testcase.external_id_field)
     expect(found_item[sys_name]).to eq(@unique_number)
   end
   
@@ -91,7 +92,7 @@ describe "When trying to update TestRail items" do
     
     # 5 - Verify it was placed properly
     found_item = @connection_testcase.find(testcase)
-    sys_name = 'custom_' + TestConfig::TR_CROSSLINK_FIELD.downcase
+    sys_name = cfsys(TestConfig::TR_CROSSLINK_FIELD)
     expect(found_item[sys_name]).to be_nil
   end
 
@@ -120,7 +121,7 @@ describe "When trying to update TestRail items" do
     
     # 5 - Verify it was placed properly
     found_item = @connection_tmp3.find(testcase)
-    sys_name = 'custom_' + TestConfig::TR_CROSSLINK_FIELD.downcase
+    sys_name = cfsys(TestConfig::TR_CROSSLINK_FIELD)
     expect(found_item[sys_name]).to eq("#{new_url}")
   end
 
@@ -147,7 +148,7 @@ describe "When trying to update TestRail items" do
      
     # 5 - Verify it was placed properly
     found_item = @connection_tmp4.find(testcase)
-    sys_name = 'custom_' + TestConfig::TR_EXTERNAL_EU_ID_FIELD.downcase
+    sys_name = cfsys(TestConfig::TR_EXTERNAL_EU_ID_FIELD)
     expect(found_item[sys_name]).to eq(new_fmtid)
   end
 
