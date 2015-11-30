@@ -548,7 +548,7 @@ module RallyEIF
 #---------------------#
       def disconnect()
         RallyLogger.info(self,"Would disconnect at this point if we needed to")
-        RallyLogger.debugger(self,"@tr_api_max_try_count='#{@tr_api_max_try_count}'")
+        RallyLogger.debug(self,"@tr_api_max_try_count='#{@tr_api_max_try_count}'")
       end
 #---------------------#
       def field_exists? (field_name)
@@ -1014,8 +1014,11 @@ module RallyEIF
 #require 'byebug';byebug
       def testrail_send(*args)
         
+        # Used to check that retry logic was working.
+        #require 'SecureRandom'
+        #unique_key = SecureRandom.base64
+
         func, uri, fields = *args
-        unique_key = SecureRandom.base64
         @tr_api_retry_current ||= 0        
         begin
           current_time = Time.now.to_f
@@ -1025,10 +1028,11 @@ module RallyEIF
             @tr_api_time_of_first_call    = current_time
             @tr_api_time_of_previous_call = current_time
           end
-          str1 =        " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
-          str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
-          str1 = str1 + "  elap %8.6fms)" % [time_since_previous_call]
-          str1 = str1 + "  key %s"        % [unique_key]
+          str1 = ''
+          #str1 = str1 + " @ %8.6fms"      % [current_time - @tr_api_time_of_first_call]
+          #str1 = str1 + "  prev %8.6fms"  % [@tr_api_time_of_previous_call - @tr_api_time_of_first_call]
+          str1 = str1 + " (%8.6fms since previous)" % [time_since_previous_call]
+          #str1 = str1 + "  key %s"        % [unique_key]
           RallyLogger.debug(self, "TestRail-API #{func}" + str1)
 
           case func
@@ -1052,7 +1056,8 @@ module RallyEIF
           @tr_api_retry_current += 1
           good_msg = 'TestRail API returned HTTP 429'
           if (@tr_api_retry_current < @tr_api_retry_maximum) && ex.message.start_with?(good_msg)
-            RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}; key='#{unique_key}'...")
+            #RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}; key='#{unique_key}'...")
+            RallyLogger.warning(self, "TestRail-API-call: INVOKING RETRY #{@tr_api_retry_current} of #{@tr_api_retry_maximum}...")
             @tr_api_time_of_previous_call = current_time
             retry
           else
