@@ -1,8 +1,15 @@
 #!/usr/bin/env ruby
 # ============================================================================ #
 # Script:
+#       Clear-Rally-TestCase-ExternalID.rb
 # Purpose:
+#       Used to clear the "ExternalID" field on Rally TestCases.
+#       This field is the Rally custom field created to contain the TestRail ID
+#       of the cooresponding Rally Testcase.
 # Usage:
+#       ruby  ./Clear-Rally-TestCase-ExternalID.rb  [--FixThemAll]
+#           Without the flag "--FixThemAll", this script will only display
+#           those items that would otherwise be modified.
 # ============================================================================ #
 
 $my_rally_base_url      = 'https://demo-test.rallydev.com/slm'
@@ -11,12 +18,11 @@ $my_rally_password      = 'MyPassword!'
 $my_rally_workspace     = 'Integrations'
 $my_rally_project       = 'MyProject'
 
-@stop_after             = 100
+$my_stop_after          = 2
 
 $my_rally_custfield     = 'TestRailID'  # Rally custom field that contains TestRail ID.
 $my_rally_custfield     = 'ExternalID'  # Rally custom field that contains TestRail ID.
 
-require 'rally_api'
 
 
 # ------------------------------------------------------------------------------
@@ -27,6 +33,9 @@ ERR_EXIT_RALLYFIND  = -1    # ... querying Rally for TestCase.
 ERR_EXIT_RALLY_UPD  = -2    # ... trying to update Rally TestCase.
 ERR_EXIT_ARGS2MANY  = -3    # Too many command line args.
 ERR_EXIT_ARGINVALID = -4    # Invalid command line arg.
+
+require 'rally_api'
+
 
 
 # ------------------------------------------------------------------------------
@@ -93,8 +102,8 @@ def connect_to_rally()
                 :headers    => $my_rally_headers
     }
 
-    @rally_con = RallyAPI::RallyRestJson.new(config)
-    return @rally_con
+    @rally = RallyAPI::RallyRestJson.new(config)
+    return @rally
 end
 
 
@@ -107,11 +116,13 @@ def get_all_testcases()
     q                       = RallyAPI::RallyQuery.new()
     q.type                  = 'TestCase'
     q.fetch                 = "Name,ObjectID,FormattedID,#{$my_rally_custfield}"
+    q.workspace             = {'_ref' => @rally.rally_default_workspace._ref}
+    q.project               = {'_ref' => @rally.rally_default_project._ref}
     q.project_scope_up      = false
     q.project_scope_down    = true
     q.query_string          = "(#{$my_rally_custfield} != \"\")"
     begin
-        all_testcases = @rally_con.find(q)
+        all_testcases = @rally.find(q)
     rescue Exception => ex
         print "ERROR: During rally.find; arg1='#{q}'\n"
         print "       Message returned: #{ex.message}\n"
@@ -137,7 +148,7 @@ print "04) Clearing Rally TestCases with populated '#{$my_rally_custfield}' fiel
 all_tc.each_with_index do |this_tc, ndx_tc|
     #print "FmtID='#{this_tc.FormattedID}'  OID='#{this_tc.ObjectID}'  #{$my_rally_custfield}='#{this_tc[$my_rally_custfield]}'\n"
     if this_tc[$my_rally_custfield] != ''
-        print "\tTestcase='#{this_tc.FormattedID}';  clearing field '#{$my_rally_custfield}' of '#{this_tc[$my_rally_custfield]}'\n"
+        print "\tTestcase='#{this_tc.FormattedID}'  OID='#{this_tc.ObjectID}'  clearing field '#{$my_rally_custfield}' of '#{this_tc[$my_rally_custfield]}'\n"
         if ARGV[0] != '--FixThemAll'
             print "\tnothing being modified...\n"
         else
@@ -150,8 +161,8 @@ all_tc.each_with_index do |this_tc, ndx_tc|
                 exit ERR_EXIT_RALLY_UPD
             end
         end
-        if ndx_tc+1 >= @stop_after
-            print "\n\n\tNOTE: Script variable '@stop_after' is set to '#{@stop_after}'; exiting...\n"
+        if ndx_tc+1 >= $my_stop_after
+            print "\n\n\tNOTE: Script variable '$my_stop_after' is set to '#{$my_stop_after}'; exiting...\n"
             exit OK_EXIT_STOPAFTER
         end
     end
