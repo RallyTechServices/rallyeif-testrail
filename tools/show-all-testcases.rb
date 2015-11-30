@@ -617,9 +617,6 @@ run_id = 1
 case_id = lc['id']
 uri = "get_results_for_case/#{run_id}/#{case_id}"
 
-require 'debugger'
-debugger
-
 results = @tr_con.send_get(uri)
 print "\nFound '#{results.length}' Results for Case.\n"
 
