@@ -335,7 +335,7 @@ def update_all_testcases()
 
     total_done = 0
     @testcases_2b_updated.each_with_index do |this_tc, ndx_tc|
-        sleep 2.00 # trying to avoid http 429
+        sleep 0.50 # trying to avoid http 429
         if @modify_the_data == true
             updated_tc = @tr_con.send_post("update_case/#{this_tc[0]}", this_tc[1][1])
         else
