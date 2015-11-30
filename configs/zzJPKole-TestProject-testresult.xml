@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<!DOCTYPE config SYSTEM "config.dtd" [
+<!ENTITY Creds-Rally    SYSTEM "configs/Creds-zzJPKole-TestProject-Rally.xml">
+<!ENTITY Creds-TestRail SYSTEM "configs/Creds-zzJPKole-TestProject-TestRail.xml">
+]>
+<config>
+    <RallyTestResultConnection>
+        &Creds-Rally;
+
+        <ArtifactType>TestCaseResult</ArtifactType>                    
+    </RallyTestResultConnection>
+
+    <TestRailConnection>
+        &Creds-TestRail;
+
+   <!-- The following is the name of the TestRail custom field (for TestResults,
+        of type String) which will be used by the connector to store the Rally
+        ObjectID of the Rally TestCaseResult -->
+        <ExternalIDField>RallyObjectID</ExternalIDField>
+
+        <ArtifactType>TestResult</ArtifactType>
+
+        <RunDaysToSearch>5.0</RunDaysToSearch> <!-- can be a float -->
+
+   <!-- The following is the name of the Rally custom field (for User Stories,
+        of type String) which will be used by the connector to store the
+        TestRail PlanID number of the TestRail Plan which is to be associated
+        with the Rally UserStory (like "144", or "R145", etc) -->
+        <RallyStoryFieldForPlanID>ExternalID</RallyStoryFieldForPlanID>
+
+    </TestRailConnection>
+
+    <Connector>
+        <FieldMapping>
+            <Field><Rally>Verdict</Rally>   <Other>status_id</Other></Field>
+            <Field><Rally>Build</Rally>     <Other>id</Other></Field>
+            <Field><Rally>Date</Rally>      <Other>created_on</Other></Field>
+
+       <!-- The following field "_testcase" is generated and used internally by
+            the connector.  (i.e. it is part of the internal workings of the
+            connector and need not be created by the user; also see note below) -->
+            <Field><Rally>TestCase</Rally>  <Other>_testcase</Other></Field>
+
+        </FieldMapping>
+       
+        <OtherFieldHandlers>
+       <!-- The special "_testcase" field above is more than just the ID.
+            It includes the name and so on, so we need to convert it to a string -->
+            <OtherHashFieldHandler>
+                <FieldName>_testcase</FieldName>
+                <ReferencedFieldLookupID>id</ReferencedFieldLookupID>  <!-- the field inside the hash -->
+            </OtherHashFieldHandler>
+
+       <!-- The "created_on" date in TestRail is in Unix format,
+            but Rally's "Date" field is in ISO format -->
+            <OtherUnixDateFieldHandler>
+                <FieldName>created_on</FieldName>
+            </OtherUnixDateFieldHandler>
+
+      </OtherFieldHandlers>
+
+      <RallyFieldHandlers>
+       <!-- Required field handler: Determines how to lookup the associated
+            TestCase in Rally -->
+            <RallyReferenceFieldHandler>
+                <FieldName>TestCase</FieldName>
+           <!-- Custom field on Rally TestCase to store the unique id for
+                TestRail TestCase ID -->
+                <ReferencedFieldLookupID>ExternalID</ReferencedFieldLookupID>
+            </RallyReferenceFieldHandler>
+
+       <!-- The "status_id" in TestRail, is returned as a number. To find the
+            number in TestRail, see documentation here:
+                http://docs.gurock.com/testrail-api2/reference-statuses 
+            Use the following section to map the values of Rally 'Verdict' to
+            TestRail 'status_id' -->
+            <RallyNumEnumFieldHandler>
+                <FieldName>Verdict</FieldName>
+                <Mappings>
+                    <Field><Rally>Pass</Rally>         <Other>1</Other></Field> <!-- Passed     -->
+                    <Field><Rally>Blocked</Rally>      <Other>2</Other></Field> <!-- Blocked    -->
+                    <Field><Rally>Inconclusive</Rally> <Other>3</Other></Field> <!-- Untested   -->
+                    <Field><Rally>Error</Rally>        <Other>4</Other></Field> <!-- Retest     -->
+                    <Field><Rally>Fail</Rally>         <Other>5</Other></Field> <!-- Failed     -->
+                    <Field><Rally>Inconclusive</Rally> <Other>6</Other></Field> <!-- N/A        -->
+                </Mappings>
+            </RallyNumEnumFieldHandler>
+
+      </RallyFieldHandlers>
+    </Connector>
+
+    <ConnectorRunner>
+        <LogLevel>Debug</LogLevel>
+        <Preview>false</Preview>
+        <Services>COPY_TESTRAIL_TO_RALLY</Services>
+
+   <!-- The following post-service action will create Rally TestSets for the TestRail TestRuns -->
+        <PostServiceActions>
+            <CreateTestSets/>
+        </PostServiceActions>
+
+    </ConnectorRunner>
+</config>

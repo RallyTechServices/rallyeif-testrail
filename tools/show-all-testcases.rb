@@ -9,7 +9,7 @@ $my_testrail_password   = 'MySecretPassword'
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
-my_vars = "./show-test-case.vars.rb"
+my_vars = './MyVars.rb'
 if FileTest.exist?( my_vars )
     print "Sourcing #{my_vars}...\n"
     require my_vars
@@ -333,6 +333,7 @@ def get_cases(target_proj, section_id:'')
     suite_list.each do |suite_id|
         uri = "get_cases/#{target_proj['id']}&suite_id=#{suite_id}&section_id=#{section_id}"
         cases = @tr_con.send_get(uri)
+require 'byebug';byebug
         print "\ttest cases found (#{suite_id}): #{cases.length}"
         if cases.length > 0
             cases.each_with_index do |item, ndx|

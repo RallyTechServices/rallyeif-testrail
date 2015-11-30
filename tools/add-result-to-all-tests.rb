@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require '../lib/testrail-api-master/ruby/testrail.rb'
+require './lib/testrail-api-master/ruby/testrail.rb'
 
 $my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
@@ -9,12 +9,13 @@ $my_testrail_password   = 'MySecretPassword'
 # ------------------------------------------------------------------------------
 # Load (and maybe override with) my personal/private variables from a file.
 #
+print "\n----------------------------------------------\n"
 my_vars = "./MyVars.rb"
 if FileTest.exist?( my_vars )
-    print "Sourcing #{my_vars}...\n"
+    print "01) Sourcing #{my_vars}...\n"
     require my_vars
 else
-    print "File #{my_vars} not found; skipping require...\n"
+    print "01) File #{my_vars} not found; skipping require...\n"
 end
 
 
@@ -30,7 +31,7 @@ end
 @tr_con.password = $my_testrail_password
 
 print "\n----------------------------------------------\n"
-print "01) Will Connect to TestRail system with:\n"
+print "02) Will Connect to TestRail system with:\n"
 print "\t     URL : #{$my_testrail_url}\n"
 print "\t    User : #{$my_testrail_user}\n"
 print "\tPassword : #{$my_testrail_password.gsub(/./,'*')}\n"
@@ -39,10 +40,9 @@ print "\tPassword : #{$my_testrail_password.gsub(/./,'*')}\n"
 # ------------------------------------------------------------------
 # Find my desired project
 #
-my_proj_name = 'JP-VCE-sm3'
 my_proj_name = 'zzJPKole-TestProject'
 print "\n----------------------------------------------\n"
-print "02) Searching for project: '#{my_proj_name}'\n"
+print "03) Searching for project: '#{my_proj_name}'\n"
 my_proj_info = nil
 
 uri = 'get_projects'
@@ -144,6 +144,24 @@ else
                 end
                 print "\n"
                 print "\t\t\t\tconfig_ids=#{run['config_ids']}\n"
+                    uri = "get_tests/#{run['id']}"
+                    these_tests = @tr_con.send_get(uri)
+                    print "\t\t\t\tTests:"
+                    statuses = @tr_con.send_get('get_statuses')
+                    prfx = ' '
+                    these_tests.each_with_index do |test,ndx_test|
+                        print "#{prfx}#{test['id']}"
+                        prfx = ','
+                        uri = "add_result/#{test['id']}"
+                        rand_stat = rand(6)
+#require 'byebug';byebug
+                        if statuses[rand_stat]['label'] == 'Untested'
+                            print 'skipped'
+                        else
+                            fields = {'status_id' => statuses[rand_stat]['id']}
+                            retval = @tr_con.send_post(uri,fields)
+                        end
+                    end
             end
         end
     end
