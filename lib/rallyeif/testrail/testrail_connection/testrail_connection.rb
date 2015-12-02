@@ -76,14 +76,17 @@ module RallyEIF
 
         # Determine how far back in time to look for updates on TR TestCases
         @run_days_to_search = XMLUtils.get_element_value(config, self.conn_class_name.to_s, "RunDaysToSearch", false).to_f
+        str = 'config' # we're using value form the config file
         if @run_days_to_search.nil?
           @run_days_to_search = 14.0 # Default for how far back to search for NEW TestCases and TestResults
+          str = 'default' # no config file value, use default instead
         end
+        RallyLogger.debug(self, "Using #{str} '<RunDaysToSearch>' value of: '#{@run_days_to_search}'")
         seconds_in_a_day = 60.0*60.0*24.0
         @run_days_as_unixtime = (Time.now.to_f - seconds_in_a_day*@run_days_to_search).to_i
    
-        # TR_SysCell - allow user some hidden overrides via environment variables.
-        # Please document here. Presents of following strings engage the option.
+        # Environment variable 'TR_SysCell' - allow overrides (for testing) via environment variable.
+        # Please document here. Presence of the following strings engage the option:
         #   CasesCreated  - Use created_after on search for cases instead of updated_after in find_new_testcases()
         #   ShowTRvars    - Show TestResult vars in find_test_results() on special condition 
         @tr_sc = Array.new
