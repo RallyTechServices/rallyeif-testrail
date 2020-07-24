@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.name          = "rallyeif-testrail"
   spec.version       = RallyEIF::TestRail::Version
   spec.authors       = ["Rally Software Development Corp"]
-  spec.email         = ["***REMOVED***"]
+  spec.email         = ["technical-services@rallydev.com"]
   spec.description   = %q{TestRail Spoke for EIF connectors}
   spec.summary       = %q{TestRail spoke for use with Hub of EIF}
   spec.homepage      = "https://github.com/RallyTechServices/rallyeif-testrail"

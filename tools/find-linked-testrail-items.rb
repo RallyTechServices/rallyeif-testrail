@@ -2,8 +2,8 @@
 
 require '../lib/testrail-api-master/ruby/testrail.rb'
 
-$my_testrail_url        = 'https://somewhere.testrail.com'
-$my_testrail_user       = '***REMOVED***'
+$my_testrail_url        = 'https://tsrally.testrail.com'
+$my_testrail_user       = 'technical-services@rallydev.com'
 $my_testrail_password   = 'FooBar'
 $my_testrail_project    = 'BarFoo'
 

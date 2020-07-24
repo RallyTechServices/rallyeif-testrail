@@ -22,7 +22,7 @@
 #                   Testcase2b-2
 # ============================================================================ #
 
-$my_testrail_url        = 'https://somewhere.testrail.com'
+$my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
 $my_testrail_password   = 'MySecretPassword'
 
@@ -113,7 +113,7 @@ def create_project(new_proj_name)
         #        "is_completed"=>false,
         #        "completed_on"=>nil,
         #        "suite_mode"=>3,
-        #        "url"=>"https://somewhere.testrail.com/index.php?/projects/overview/54"}
+        #        "url"=>"https://tsrally.testrail.com/index.php?/projects/overview/54"}
     print "\tid:'#{@new_project['id']}'  suite_mode:'#{@new_project['suite_mode']}'  announcement:'#{@new_project['announcement']}'\n"
     return
 end
@@ -140,7 +140,7 @@ def create_suites(suite_count)
 			#		 "is_baseline"=>false,
 			#		 "is_completed"=>false,
 			#		 "completed_on"=>nil,
-			#		 "url"=>"https://somewhere.testrail.com/index.php?/suites/view/97"}
+			#		 "url"=>"https://tsrally.testrail.com/index.php?/suites/view/97"}
         print "\tid:'#{new_suite['id']}'  name:'#{new_suite['name']}'\n"
         @all_suites.push(new_suite)
         @all_suite_ids.push(new_suite['id'])
@@ -293,7 +293,7 @@ def create_runs()
 		#		 "plan_id"=>nil,
 		#		 "created_on"=>1438630002,
 		#		 "created_by"=>1,
-		#		 "url"=>"https://somewhere.testrail.com/index.php?/runs/view/200"}
+		#		 "url"=>"https://tsrally.testrail.com/index.php?/runs/view/200"}
     rescue Exception => ex
         print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
         print "\t#{ex.message}\n"
@@ -367,7 +367,7 @@ def create_plans(plan_count)
 		    #		 "project_id"=>108,
 		    #		 "created_on"=>1438706249,
 		    #		 "created_by"=>1,
-		    #		 "url"=>"https://somewhere.testrail.com/index.php?/plans/view/223",
+		    #		 "url"=>"https://tsrally.testrail.com/index.php?/plans/view/223",
 		    #		 "entries"=>[]}
         rescue Exception => ex
             print "EXCEPTION occurred on TestRail API 'send_post(#{uri}, #{fields})':\n"
@@ -450,7 +450,7 @@ def create_plan_entries(pe_count)
 			#		    "entry_id"=>"bf13d407-1c13-4d9f-a7e8-ae714801eeb1",
 			#		    "config"=>nil,
 			#		    "config_ids"=>[],
-			#		    "url"=>"https://somewhere.testrail.com/index.php?/runs/view/317"}],
+			#		    "url"=>"https://tsrally.testrail.com/index.php?/runs/view/317"}],
 			#		 "suite_id"=>336,
 			#		 "name"=>"This is the PlanEntry name"}
 

@@ -2,7 +2,7 @@
 
 require './lib/testrail-api-master/ruby/testrail.rb'
 
-$my_testrail_url        = 'https://somewhere.testrail.com'
+$my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
 $my_testrail_password   = 'MySecretPassword'
 
@@ -58,7 +58,7 @@ all_projects.each_with_index do |proj,ndx|
     # Each project in the array:
     # {"id"=>1, "name"=>"Test-Proj-sm3", "announcement"=>"This is a project 'Test-Proj-01'.",
     #  "show_announcement"=>true, "is_completed"=>false, "completed_on"=>nil, "suite_mode"=>3,
-    #  "url"=>"https://somewhere.testrail.com/index.php?/projects/overview/1"}
+    #  "url"=>"https://tsrally.testrail.com/index.php?/projects/overview/1"}
     print "\t%2d -"                 %   [ndx+1]
     print "  id=%-4d"               %   [proj['id']]
     print "  name=%-18s"            %   [proj['name']]

@@ -2,7 +2,7 @@
 
 require '../lib/testrail-api-master/ruby/testrail.rb'
 
-$my_testrail_url        = 'https://somewhere.testrail.com'
+$my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
 $my_testrail_password   = 'MySecretPassword'
 
@@ -461,7 +461,7 @@ def get_runs_in_plans(target_proj)
 		#		 "project_id"=>26,
 		#		 "created_on"=>1437573544,
 		#		 "created_by"=>1,
-		#		 "url"=>"https://somewhere.testrail.com/index.php?/plans/view/192"}
+		#		 "url"=>"https://tsrally.testrail.com/index.php?/plans/view/192"}
     print "\n14) Find all runs in the '#{all_plans.length}' plans for project '#{target_proj['id']}':\n"
     all_plans.each do |plan|
         print "\tPlan id='#{plan['id']}'  name='#{plan['name']}'\n"
@@ -490,7 +490,7 @@ def get_runs_in_plans(target_proj)
 		    #		 "project_id"=>26,
 		    #		 "created_on"=>1437573585,
 		    #		 "created_by"=>1,
-		    #		 "url"=>"https://somewhere.testrail.com/index.php?/plans/view/193",
+		    #		 "url"=>"https://tsrally.testrail.com/index.php?/plans/view/193",
 		    #		 "entries"=>
 		    #		  [{"id"=>"4065784c-d591-4f56-8461-6ac41513abeb",
 		    #		    "suite_id"=>26,
@@ -523,7 +523,7 @@ def get_runs_in_plans(target_proj)
 		    #		       "entry_id"=>"4065784c-d591-4f56-8461-6ac41513abeb",
 		    #		       "config"=>nil,
 		    #		       "config_ids"=>[],
-		    #		       "url"=>"https://somewhere.testrail.com/index.php?/runs/view/194"}]}]}
+		    #		       "url"=>"https://tsrally.testrail.com/index.php?/runs/view/194"}]}]}
         print "\t\tfound '#{plan['entries'].length}' entries:\n"
         plan['entries'].each do |e|
             print "\t\tEntry id='#{e['id']}'  name='#{e['name']}'  config_ids='#{e['config_ids']}'\n"

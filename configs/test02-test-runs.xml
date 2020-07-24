@@ -68,7 +68,7 @@
            in TestRail, go to admin console, the number at the end of the url when
            you click on edit a test result status field is its name.  In the default
            set up, if you click on Passed, you get a url that looks like:
-           https://somewhere.testrail.com/index.php?/admin/statuses/edit/1
+           https://tsrally.testrail.com/index.php?/admin/statuses/edit/1
            so the field value for that is 1
         -->
         <RallyNumEnumFieldHandler>

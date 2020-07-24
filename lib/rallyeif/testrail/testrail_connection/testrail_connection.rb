@@ -468,7 +468,7 @@ module RallyEIF
                   #        "is_baseline"=>false,
                   #        "is_completed"=>false,
                   #        "completed_on"=>nil,
-                  #        "url"=>"https://somewhere.testrail.com/index.php?/suites/view/97"}
+                  #        "url"=>"https://tsrally.testrail.com/index.php?/suites/view/97"}
             gui_id = 'S' + new_item['id'].to_s # How it appears in the GUI
             extra_info = ''
 

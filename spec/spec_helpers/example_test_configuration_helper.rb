@@ -42,8 +42,8 @@ module TestConfig
   #         --> Save Settings .")
   
   # The TestRail account to be used for testing:
-  TR_URL      = 'https://somewhere.testrail.com'
-  TR_USER     = '***REMOVED***'
+  TR_URL      = 'https://tsrally.testrail.com'
+  TR_USER     = 'technical-services@rallydev.com'
   TR_PASSWORD = 'Secret'
   
   test_suite_mode = 3 # Note: Aug-2015 - Only suite-mode=3 has been tested

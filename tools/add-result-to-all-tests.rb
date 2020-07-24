@@ -2,7 +2,7 @@
 
 require './lib/testrail-api-master/ruby/testrail.rb'
 
-$my_testrail_url        = 'https://somewhere.testrail.com'
+$my_testrail_url        = 'https://tsrally.testrail.com'
 $my_testrail_user       = 'user@company.com'
 $my_testrail_password   = 'MySecretPassword'
 
@@ -84,7 +84,7 @@ all_plans = @tr_con.send_get(uri)
     #    "passed_count"=>1, "blocked_count"=>1, "untested_count"=>1, "retest_count"=>1, "failed_count"=>1,
     #    "custom_status1_count"=>1, "custom_status2_count"=>0, "custom_status3_count"=>0, "custom_status4_count"=>0,
     #    "custom_status5_count"=>0, "custom_status6_count"=>0, "custom_status7_count"=>0, "project_id"=>26,
-    #    "created_on"=>1437573585, "created_by"=>1, "url"=>"https://somewhere.testrail.com/index.php?/plans/view/193"}
+    #    "created_on"=>1437573585, "created_by"=>1, "url"=>"https://tsrally.testrail.com/index.php?/plans/view/193"}
 if all_plans.length < 1
     print "Found no plans for this project."
 else
@@ -111,7 +111,7 @@ else
             #    "passed_count"=>1, "blocked_count"=>1, "untested_count"=>1, "retest_count"=>1, "failed_count"=>1,
             #    "custom_status1_count"=>1, "custom_status2_count"=>0, "custom_status3_count"=>0, "custom_status4_count"=>0,
             #    "custom_status5_count"=>0, "custom_status6_count"=>0, "custom_status7_count"=>0,
-            #    "project_id"=>26, "created_on"=>1437573585, "created_by"=>1, "url"=>"https://somewhere.testrail.com/index.php?/plans/view/193",
+            #    "project_id"=>26, "created_on"=>1437573585, "created_by"=>1, "url"=>"https://tsrally.testrail.com/index.php?/plans/view/193",
             #    "entries"=>[
             #       {"id"=>"4065784c-d591-4f56-8461-6ac41513abeb", "suite_id"=>26, "name"=>"Test Run 1 - Gamma",
             #           "runs"=>[
@@ -121,7 +121,7 @@ else
             #                "custom_status1_count"=>1, "custom_status2_count"=>0, "custom_status3_count"=>0, "custom_status4_count"=>0,
             #                "custom_status5_count"=>0, "custom_status6_count"=>0, "custom_status7_count"=>0,
             #                "project_id"=>26, "plan_id"=>193, "entry_index"=>1, "entry_id"=>"4065784c-d591-4f56-8461-6ac41513abeb",
-            #                "config"=>nil, "config_ids"=>[], "url"=>"https://somewhere.testrail.com/index.php?/runs/view/194"
+            #                "config"=>nil, "config_ids"=>[], "url"=>"https://tsrally.testrail.com/index.php?/runs/view/194"
             #               }]
             #       }]}
             #

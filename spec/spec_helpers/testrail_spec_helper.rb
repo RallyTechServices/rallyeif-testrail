@@ -310,7 +310,7 @@ module TestRailSpecHelper
         #        "is_baseline"=>false,
         #        "is_completed"=>false,
         #        "completed_on"=>nil,
-        #        "url"=>"https://somewhere.testrail.com/index.php?/suites/view/97"}
+        #        "url"=>"https://tsrally.testrail.com/index.php?/suites/view/97"}
       return [item, item['id']]
 
     when 'testsection'
